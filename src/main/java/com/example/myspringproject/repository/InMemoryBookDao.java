@@ -3,7 +3,6 @@ package com.example.myspringproject.repository;
 import com.example.myspringproject.model.Book;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.springframework.stereotype.Repository;
 
@@ -16,9 +15,8 @@ public class InMemoryBookDao {
         return bookArrayList;
     }
 
-    public Book saveBook(Book book) {
+    public void saveBook(Book book) {
         bookArrayList.add(book);
-        return book;
     }
 
     public Book findBookById(int id) {
@@ -53,7 +51,7 @@ public class InMemoryBookDao {
                 .filter(book -> book.getBookAuthor() != null
                         &&
                         book.getBookAuthor().toLowerCase().contains(author.toLowerCase()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<Book> findBooksByName(String bookName) {
@@ -61,6 +59,6 @@ public class InMemoryBookDao {
                 .filter(book -> book.getBookName() != null
                         &&
                         book.getBookName().toLowerCase().contains(bookName.toLowerCase()))
-                .collect(Collectors.toList());
+                .toList();
     }
 }
