@@ -1,41 +1,41 @@
-package com.example.MySpringProject.repository;
-import com.example.MySpringProject.model.Book;
-import org.springframework.stereotype.Repository;
+package com.example.myspringproject.repository;
 
+import com.example.myspringproject.model.Book;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.springframework.stereotype.Repository;
 
 @Repository
 
-public class InMemoryBookDAO {
-    private final List<Book> BOOK = new ArrayList<>();
+public class InMemoryBookDao {
+    private final List<Book> bookArrayList = new ArrayList<>();
 
     public List<Book> findAllBooks() {
-        return BOOK;
+        return bookArrayList;
     }
 
     public Book saveBook(Book book) {
-        BOOK.add(book);
+        bookArrayList.add(book);
         return book;
     }
 
     public Book findBookById(int id) {
-        return BOOK.stream()
-                .filter(book -> book.getBookISBN() == id)
+        return bookArrayList.stream()
+                .filter(book -> book.getBookId() == id)
                 .findFirst()
                 .orElse(null);
     }
 
 
     public Book updateBook(Book book) {
-        int index = IntStream.range(0, BOOK.size())
-                .filter(i -> BOOK.get(i).getBookISBN() == book.getBookISBN())
+        int index = IntStream.range(0, bookArrayList.size())
+                .filter(i -> bookArrayList.get(i).getBookId() == book.getBookId())
                 .findFirst()
                 .orElse(-1);
         if (index != -1) {
-            BOOK.set(index, book);
+            bookArrayList.set(index, book);
             return book;
         }
         return null;
@@ -44,20 +44,22 @@ public class InMemoryBookDAO {
     public void deleteBookById(int id) {
         var book = findBookById(id);
         if (book != null) {
-            BOOK.remove(book);
+            bookArrayList.remove(book);
         }
     }
 
     public List<Book> findBooksByAuthor(String author) {
-        return BOOK.stream()
-                .filter(book -> book.getBookAuthor() != null &&
+        return bookArrayList.stream()
+                .filter(book -> book.getBookAuthor() != null
+                        &&
                         book.getBookAuthor().toLowerCase().contains(author.toLowerCase()))
                 .collect(Collectors.toList());
     }
 
     public List<Book> findBooksByName(String bookName) {
-        return BOOK.stream()
-                .filter(book -> book.getBookName() != null &&
+        return bookArrayList.stream()
+                .filter(book -> book.getBookName() != null
+                        &&
                         book.getBookName().toLowerCase().contains(bookName.toLowerCase()))
                 .collect(Collectors.toList());
     }

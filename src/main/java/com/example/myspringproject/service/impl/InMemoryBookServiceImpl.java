@@ -1,18 +1,17 @@
-package com.example.MySpringProject.service.Impl;
+package com.example.myspringproject.service.impl;
 
-import com.example.MySpringProject.model.Book;
-import com.example.MySpringProject.repository.InMemoryBookDAO;
-import com.example.MySpringProject.service.BookService;
+import com.example.myspringproject.model.Book;
+import com.example.myspringproject.repository.InMemoryBookDao;
+import com.example.myspringproject.service.BookService;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @AllArgsConstructor
 public class InMemoryBookServiceImpl implements BookService {
 
-    private final InMemoryBookDAO repository;
+    private final InMemoryBookDao repository;
 
     @Override
     public List<Book> findAllBooks() {
