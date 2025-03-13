@@ -4,6 +4,7 @@ import com.example.myspringproject.model.Book;
 import com.example.myspringproject.service.BookService;
 import java.util.List;
 import lombok.AllArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,8 +34,12 @@ public class ControllerBook {
     }
 
     @GetMapping("/{id}")
-    public Book findBookById(@PathVariable("id") int id) {
-        return service.findBookById(id);
+    public ResponseEntity<Book> findBookById(@PathVariable("id") int id) {
+        Book foundBook = service.findBookById(id);
+        if (foundBook == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(foundBook);
     }
 
     @PutMapping("/update_book")
@@ -48,19 +53,25 @@ public class ControllerBook {
     }
 
     @GetMapping("/search")
-    public List<Book> searchBooks(
+    public ResponseEntity<List<Book>> searchBooks(
             @RequestParam(value = "author", required = false) String author,
             @RequestParam(value = "title", required = false) String title
     ) {
+        List<Book> result;
 
         if (author != null && !author.isBlank()) {
-            return service.findBooksByAuthor(author);
+            result = service.findBooksByAuthor(author);
         } else if (title != null && !title.isBlank()) {
-            return service.findBooksByName(title);
+            result = service.findBooksByName(title);
+        } else {
+            result = List.of();
         }
 
-        return List.of();
+        if (result.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        } else {
+            return ResponseEntity.ok(result);
+        }
     }
-
 
 }
