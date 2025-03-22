@@ -16,7 +16,4 @@ public class Book {
 
     private String bookName;
     private String bookAuthor;
-
-    //private int bookNumberOfPages;
-    //private int bookYear;
 }
