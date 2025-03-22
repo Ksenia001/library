@@ -1,5 +1,7 @@
 package com.example.myspringproject.service;
 
+import com.example.myspringproject.Dto.create.BookCreateDto;
+import com.example.myspringproject.Dto.update.BookUpdateDto;
 import com.example.myspringproject.model.Book;
 import java.util.List;
 
@@ -7,15 +9,17 @@ public interface BookService {
 
     List<Book> findAllBooks();
 
-    void saveBook(Book book);
+    Book createBook(BookCreateDto dto);
 
     Book findBookById(int id);
 
-    Book updateBook(Book book);
+    Book updateBook(BookUpdateDto dto);
 
     void deleteBookById(int id);
 
     List<Book> findBooksByAuthor(String author);
 
-    List<Book> findBooksByName(String bookName);
+    List<Book> findBooksByName(String title);
+
+    List<Book> searchBooks(String author, String title);
 }

@@ -1,8 +1,12 @@
 package com.example.myspringproject.controller;
 
+import com.example.myspringproject.Dto.create.BookCreateDto;
+import com.example.myspringproject.Dto.get.BookGetDto;
+import com.example.myspringproject.Dto.update.BookUpdateDto;
 import com.example.myspringproject.model.Book;
 import com.example.myspringproject.service.BookService;
 import java.util.List;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,57 +24,50 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class ControllerBook {
 
-    private final BookService service;
+    private final BookService bookService;
 
     @GetMapping
-    public List<Book> findAllBooks() {
-        return service.findAllBooks();
+    public ResponseEntity<List<BookGetDto>> findAllBooks() {
+        List<Book> books = bookService.findAllBooks();
+        List<BookGetDto> dtos = books.stream()
+                .map(BookGetDto::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
-    @PostMapping("/save_book")
-    public String saveBook(@RequestBody Book book) {
-        service.saveBook(book);
-        return "Книга успешно добавлена";
+    @PostMapping
+    public ResponseEntity<BookGetDto> saveBook(@RequestBody @Valid BookCreateDto dto) {
+        Book book = bookService.createBook(dto);
+        return ResponseEntity.ok(new BookGetDto(book));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Book> findBookById(@PathVariable("id") int id) {
-        Book foundBook = service.findBookById(id);
-        if (foundBook == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(foundBook);
+    public ResponseEntity<BookGetDto> findBookById(@PathVariable int id) {
+        Book book = bookService.findBookById(id);
+        return ResponseEntity.ok(new BookGetDto(book));
     }
 
-    @PutMapping("/update_book")
-    public Book updateBook(@RequestBody Book book) {
-        return service.updateBook(book);
+    @PutMapping
+    public ResponseEntity<BookGetDto> updateBook(@RequestBody @Valid BookUpdateDto dto) {
+        Book updatedBook = bookService.updateBook(dto);
+        return ResponseEntity.ok(new BookGetDto(updatedBook));
     }
 
-    @DeleteMapping("/delete_book/{id}")
-    public void deleteBookById(@PathVariable int id) {
-        service.deleteBookById(id);
+    @DeleteMapping("{id}")
+    public ResponseEntity<Void> deleteBookById(@PathVariable int id) {
+        bookService.deleteBookById(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<Book>> searchBooks(
+    public ResponseEntity<List<BookGetDto>> searchBooks(
             @RequestParam(value = "author", required = false) String author,
             @RequestParam(value = "title", required = false) String title
     ) {
-        List<Book> result;
-
-        if (author != null && !author.isBlank()) {
-            result = service.findBooksByAuthor(author);
-        } else if (title != null && !title.isBlank()) {
-            result = service.findBooksByName(title);
-        } else {
-            result = List.of();
-        }
-
-        if (result.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        } else {
-            return ResponseEntity.ok(result);
-        }
+        List<Book> result = bookService.searchBooks(author, title);
+        List<BookGetDto> dtos = result.stream()
+                .map(BookGetDto::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 }
