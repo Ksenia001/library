@@ -1,7 +1,7 @@
 package com.example.myspringproject.service;
 
-import com.example.myspringproject.Dto.create.CategoryCreateDto;
-import com.example.myspringproject.Dto.update.CategoryUpdateDto;
+import com.example.myspringproject.dto.create.CategoryCreateDto;
+import com.example.myspringproject.dto.update.CategoryUpdateDto;
 import com.example.myspringproject.model.Category;
 import java.util.List;
 

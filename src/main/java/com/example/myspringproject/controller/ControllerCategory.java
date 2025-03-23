@@ -1,12 +1,12 @@
 package com.example.myspringproject.controller;
 
-import com.example.myspringproject.Dto.create.CategoryCreateDto;
-import com.example.myspringproject.Dto.get.CategoryGetDto;
-import com.example.myspringproject.Dto.update.CategoryUpdateDto;
+import com.example.myspringproject.dto.create.CategoryCreateDto;
+import com.example.myspringproject.dto.get.CategoryGetDto;
+import com.example.myspringproject.dto.update.CategoryUpdateDto;
 import com.example.myspringproject.model.Category;
 import com.example.myspringproject.service.CategoryService;
-import java.util.List;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,7 +44,9 @@ public class ControllerCategory {
 
     // Создание новой категории
     @PostMapping
-    public ResponseEntity<CategoryGetDto> createCategory(@RequestBody @Valid CategoryCreateDto dto) {
+    public ResponseEntity<CategoryGetDto> createCategory(
+            @RequestBody @Valid CategoryCreateDto dto
+    ) {
         Category createdCategory = categoryService.createCategory(dto);
         return ResponseEntity.ok(new CategoryGetDto(createdCategory));
     }
@@ -67,7 +69,8 @@ public class ControllerCategory {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<CategoryGetDto>> searchCategories(@RequestParam("name") String name) {
+    public ResponseEntity<List<CategoryGetDto>> searchCategories(
+            @RequestParam("name") String name) {
         List<Category> categories = categoryService.findCategoriesByName(name);
         List<CategoryGetDto> dtos = categories.stream()
                 .map(CategoryGetDto::new)

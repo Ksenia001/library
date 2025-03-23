@@ -1,7 +1,7 @@
 package com.example.myspringproject.service.impl;
 
-import com.example.myspringproject.Dto.create.BookCreateDto;
-import com.example.myspringproject.Dto.update.BookUpdateDto;
+import com.example.myspringproject.dto.create.BookCreateDto;
+import com.example.myspringproject.dto.update.BookUpdateDto;
 import com.example.myspringproject.model.Book;
 import com.example.myspringproject.model.Category;
 import com.example.myspringproject.repository.BookRepository;
@@ -49,7 +49,9 @@ public class BookServiceImpl implements BookService {
                         .filter(id -> !foundCategoryIds.contains(id))
                         .toList();
 
-                throw new IllegalArgumentException("Categories not found with IDs: " + missingCategoryIds);
+                throw new IllegalArgumentException(
+                        "Categories not found with IDs: " + missingCategoryIds
+                );
             }
 
             book.setCategories(categories);
@@ -101,7 +103,8 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public List<Book> searchBooks(String author, String title) {
-        return bookRepository.findByBookAuthorContainingIgnoreCaseOrBookNameContainingIgnoreCase(author, title);
+        return bookRepository.findByBookAuthorContainingIgnoreCaseOrBookNameContainingIgnoreCase(
+                author, title);
     }
 }
 

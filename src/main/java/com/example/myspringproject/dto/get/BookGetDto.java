@@ -1,10 +1,10 @@
-package com.example.myspringproject.Dto.get;
+package com.example.myspringproject.dto.get;
 
+import com.example.myspringproject.model.Book;
 import com.example.myspringproject.model.Category;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
-import com.example.myspringproject.model.Book;
-import java.util.List;
 
 @Getter
 @Setter

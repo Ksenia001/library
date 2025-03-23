@@ -1,12 +1,12 @@
 package com.example.myspringproject.controller;
 
-import com.example.myspringproject.Dto.create.BookCreateDto;
-import com.example.myspringproject.Dto.get.BookGetDto;
-import com.example.myspringproject.Dto.update.BookUpdateDto;
+import com.example.myspringproject.dto.create.BookCreateDto;
+import com.example.myspringproject.dto.get.BookGetDto;
+import com.example.myspringproject.dto.update.BookUpdateDto;
 import com.example.myspringproject.model.Book;
 import com.example.myspringproject.service.BookService;
-import java.util.List;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;

@@ -1,7 +1,7 @@
 package com.example.myspringproject.service;
 
-import com.example.myspringproject.Dto.create.BookCreateDto;
-import com.example.myspringproject.Dto.update.BookUpdateDto;
+import com.example.myspringproject.dto.create.BookCreateDto;
+import com.example.myspringproject.dto.update.BookUpdateDto;
 import com.example.myspringproject.model.Book;
 import java.util.List;
 

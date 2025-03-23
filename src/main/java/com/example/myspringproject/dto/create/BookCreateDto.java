@@ -1,4 +1,4 @@
-package com.example.myspringproject.Dto.create;
+package com.example.myspringproject.dto.create;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,11 +9,13 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CategoryCreateDto {
+public class BookCreateDto {
     @NotBlank
-    private String name;
+    private String bookName;
+
+    @NotBlank
+    private String bookAuthor;
 
     @NotNull
-    private List<@Positive Integer> bookIds;
+    private List<@Positive Integer> categoryIds;
 }
-
