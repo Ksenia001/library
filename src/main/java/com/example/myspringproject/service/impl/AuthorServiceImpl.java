@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class AuthorServiceImpl implements AuthorService {
 
+    private static final String AUTHOR_NOT_FOUND_MESSAGE = "Author not found with ID: ";
     private final AuthorRepository authorRepository;
 
     @Override
@@ -26,7 +27,7 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public Author findAuthorById(int id) {
         return authorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Author not found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MESSAGE + id));
     }
 
     @Override
@@ -40,7 +41,7 @@ public class AuthorServiceImpl implements AuthorService {
     @Transactional
     public Author updateAuthor(int id, AuthorUpdateDto dto) {
         Author author = authorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Author not found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MESSAGE + id));
 
         if (dto.getAuthorName() != null && !dto.getAuthorName().isBlank()) {
             author.setAuthorName(dto.getAuthorName());
@@ -53,7 +54,7 @@ public class AuthorServiceImpl implements AuthorService {
     @Transactional
     public void deleteAuthor(int id) {
         Author author = authorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Author not found with ID: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MESSAGE + id));
 
         // Remove the author reference from all associated books
         List<Book> books = author.getBooks();
