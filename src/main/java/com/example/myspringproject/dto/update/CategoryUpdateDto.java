@@ -5,7 +5,6 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
-// CategoryUpdateDto.java
 @Getter
 @Setter
 public class CategoryUpdateDto {

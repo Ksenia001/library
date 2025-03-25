@@ -2,8 +2,10 @@ package com.example.myspringproject.service.impl;
 
 import com.example.myspringproject.dto.create.BookCreateDto;
 import com.example.myspringproject.dto.update.BookUpdateDto;
+import com.example.myspringproject.model.Author;
 import com.example.myspringproject.model.Book;
 import com.example.myspringproject.model.Category;
+import com.example.myspringproject.repository.AuthorRepository;
 import com.example.myspringproject.repository.BookRepository;
 import com.example.myspringproject.repository.CategoryRepository;
 import com.example.myspringproject.service.BookService;
@@ -20,6 +22,7 @@ public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
+    private final AuthorRepository authorRepository;
 
     @Override
     public List<Book> findAllBooks() {
@@ -35,48 +38,18 @@ public class BookServiceImpl implements BookService {
     public Book createBook(BookCreateDto dto) {
         Book book = new Book();
         book.setBookName(dto.getBookName());
-        book.setBookAuthor(dto.getBookAuthor());
 
+        // Set the Author
+        Author author = authorRepository.findById(dto.getAuthorId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Author not found with ID: " + dto.getAuthorId()));
+        book.setAuthor(author);
+        author.getBooks().add(book);
+
+        // Set Categories
         if (dto.getCategoryIds() != null && !dto.getCategoryIds().isEmpty()) {
             List<Category> categories = categoryRepository.findAllById(dto.getCategoryIds());
-
-            // Проверка, что все категории найдены
             if (categories.size() != dto.getCategoryIds().size()) {
-                List<Integer> foundCategoryIds = categories.stream()
-                        .map(Category::getCategoryId)
-                        .toList();
-                List<Integer> missingCategoryIds = dto.getCategoryIds().stream()
-                        .filter(id -> !foundCategoryIds.contains(id))
-                        .toList();
-
-                throw new IllegalArgumentException(
-                        "Categories not found with IDs: " + missingCategoryIds
-                );
-            }
-
-            book.setCategories(categories);
-            categories.forEach(cat -> cat.getBooks().add(book));
-        }
-
-        return bookRepository.save(book);
-    }
-
-    @Override
-    public Book updateBook(BookUpdateDto dto) {
-        Book book = bookRepository.findById(dto.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
-
-        book.setBookName(dto.getBookName());
-        book.setBookAuthor(dto.getBookAuthor());
-
-        if (dto.getCategoriesIds() != null) {
-            // Удаляем старые связи
-            book.getCategories().forEach(cat -> cat.getBooks().remove(book));
-            book.getCategories().clear();
-
-            // Добавляем новые
-            List<Category> categories = categoryRepository.findAllById(dto.getCategoriesIds());
-            if (categories.size() != dto.getCategoriesIds().size()) {
                 throw new IllegalArgumentException("Some categories not found");
             }
             book.setCategories(categories);
@@ -87,24 +60,45 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    public Book updateBook(int id, BookUpdateDto dto) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
+
+        // Обновите поля книги из DTO
+        book.setBookName(dto.getBookName());
+
+        // Обновите автора
+        if (dto.getAuthorId() != null) {
+            Author author = authorRepository.findById(dto.getAuthorId())
+                    .orElseThrow(() -> new EntityNotFoundException("Author not found"));
+            book.setAuthor(author);
+        }
+
+        // Обновите категории
+        if (dto.getCategoriesIds() != null) {
+            List<Category> categories = categoryRepository.findAllById(dto.getCategoriesIds());
+            book.setCategories(categories);
+        }
+
+        return bookRepository.save(book);
+    }
+
+    @Override
     public void deleteBookById(int id) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
+        if (book.getAuthor() != null) {
+            book.getAuthor().getBooks().remove(book);
+        }
         bookRepository.deleteById(id);
     }
 
     @Override
-    public List<Book> findBooksByAuthor(String author) {
-        return bookRepository.findByBookAuthorContainingIgnoreCase(author);
-    }
-
-    @Override
-    public List<Book> findBooksByName(String title) {
-        return bookRepository.findByBookNameContainingIgnoreCase(title);
-    }
-
-    @Override
     public List<Book> searchBooks(String author, String title) {
-        return bookRepository.findByBookAuthorContainingIgnoreCaseOrBookNameContainingIgnoreCase(
-                author, title);
+        return
+                bookRepository
+                        .findByAuthorAuthorNameContainingIgnoreCaseOrBookNameContainingIgnoreCase(
+                        author, title);
     }
 }
 

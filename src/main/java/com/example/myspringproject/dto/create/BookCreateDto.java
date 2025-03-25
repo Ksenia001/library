@@ -13,8 +13,9 @@ public class BookCreateDto {
     @NotBlank
     private String bookName;
 
-    @NotBlank
-    private String bookAuthor;
+    @NotNull
+    @Positive
+    private Integer authorId;
 
     @NotNull
     private List<@Positive Integer> categoryIds;

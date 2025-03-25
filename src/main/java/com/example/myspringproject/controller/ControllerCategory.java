@@ -61,7 +61,6 @@ public class ControllerCategory {
         return ResponseEntity.ok(new CategoryGetDto(updatedCategory));
     }
 
-    // Удаление категории
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable int id) {
         categoryService.deleteCategory(id);

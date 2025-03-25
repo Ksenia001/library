@@ -47,9 +47,11 @@ public class ControllerBook {
         return ResponseEntity.ok(new BookGetDto(book));
     }
 
-    @PutMapping
-    public ResponseEntity<BookGetDto> updateBook(@RequestBody @Valid BookUpdateDto dto) {
-        Book updatedBook = bookService.updateBook(dto);
+    @PutMapping("/{id}")
+    public ResponseEntity<BookGetDto> updateBook(
+            @PathVariable int id, @RequestBody @Valid BookUpdateDto dto
+    ) {
+        Book updatedBook = bookService.updateBook(id, dto);
         return ResponseEntity.ok(new BookGetDto(updatedBook));
     }
 
@@ -61,13 +63,11 @@ public class ControllerBook {
 
     @GetMapping("/search")
     public ResponseEntity<List<BookGetDto>> searchBooks(
-            @RequestParam(value = "author", required = false) String author,
+            @RequestParam(value = "authorName", required = false) String authorName,
             @RequestParam(value = "title", required = false) String title
     ) {
-        List<Book> result = bookService.searchBooks(author, title);
-        List<BookGetDto> dtos = result.stream()
-                .map(BookGetDto::new)
-                .toList();
+        List<Book> result = bookService.searchBooks(authorName, title);
+        List<BookGetDto> dtos = result.stream().map(BookGetDto::new).toList();
         return ResponseEntity.ok(dtos);
     }
 }

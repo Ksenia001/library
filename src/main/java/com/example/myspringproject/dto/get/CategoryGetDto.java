@@ -13,7 +13,6 @@ public class CategoryGetDto {
     private String name;
     private List<String> books;
 
-    // Конструктор для преобразования сущности Category в DTO
     public CategoryGetDto(Category category) {
         this.id = category.getCategoryId();
         this.name = category.getCategoryName();

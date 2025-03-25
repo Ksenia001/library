@@ -11,12 +11,15 @@ import lombok.Setter;
 public class BookGetDto {
     private int id;
     private String bookName;
+    private String authorName;
     private List<String> categories;
 
-    // Конвертация сущности Book в DTO
     public BookGetDto(Book book) {
         this.id = book.getBookId();
         this.bookName = book.getBookName();
+        if (book.getAuthor() != null) {
+            this.authorName = book.getAuthor().getAuthorName();
+        }
         if (book.getCategories() != null) {
             this.categories = book.getCategories().stream()
                     .map(Category::getCategoryName)

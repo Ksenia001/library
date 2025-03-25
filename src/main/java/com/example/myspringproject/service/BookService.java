@@ -13,13 +13,9 @@ public interface BookService {
 
     Book findBookById(int id);
 
-    Book updateBook(BookUpdateDto dto);
+    Book updateBook(int id, BookUpdateDto dto);
 
     void deleteBookById(int id);
-
-    List<Book> findBooksByAuthor(String author);
-
-    List<Book> findBooksByName(String title);
 
     List<Book> searchBooks(String author, String title);
 }
