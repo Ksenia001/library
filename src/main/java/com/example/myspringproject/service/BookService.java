@@ -18,4 +18,12 @@ public interface BookService {
     void deleteBookById(int id);
 
     List<Book> searchBooks(String author, String title);
+
+    List<Book> findBooksByCategory(String categoryName);
+
+    List<Book> findBooksByCategoryId(int categoryId);
+
+    List<Book> findBooksByAuthor(String authorName);
+
+    List<Book> findBooksByAuthorId(int authorId);
 }

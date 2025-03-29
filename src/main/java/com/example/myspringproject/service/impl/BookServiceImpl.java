@@ -10,6 +10,7 @@ import com.example.myspringproject.repository.BookRepository;
 import com.example.myspringproject.repository.CategoryRepository;
 import com.example.myspringproject.service.BookService;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Primary;
@@ -37,7 +38,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public Book createBook(BookCreateDto dto) {
         Book book = new Book();
-        book.setBookName(dto.getBookName());
+        book.setBookName(dto.getName());
 
         // Set the Author
         Author author = authorRepository.findById(dto.getAuthorId())
@@ -52,8 +53,14 @@ public class BookServiceImpl implements BookService {
             if (categories.size() != dto.getCategoryIds().size()) {
                 throw new IllegalArgumentException("Some categories not found");
             }
+
+            categories.forEach(cat -> {
+                if (cat.getBooks() == null) {
+                    cat.setBooks(new ArrayList<>());
+                }
+                cat.getBooks().add(book);
+            });
             book.setCategories(categories);
-            categories.forEach(cat -> cat.getBooks().add(book));
         }
 
         return bookRepository.save(book);
@@ -64,17 +71,14 @@ public class BookServiceImpl implements BookService {
         Book book = bookRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Book not found"));
 
-        // Обновите поля книги из DTO
         book.setBookName(dto.getBookName());
 
-        // Обновите автора
         if (dto.getAuthorId() != null) {
             Author author = authorRepository.findById(dto.getAuthorId())
                     .orElseThrow(() -> new EntityNotFoundException("Author not found"));
             book.setAuthor(author);
         }
 
-        // Обновите категории
         if (dto.getCategoriesIds() != null) {
             List<Category> categories = categoryRepository.findAllById(dto.getCategoriesIds());
             book.setCategories(categories);
@@ -99,6 +103,25 @@ public class BookServiceImpl implements BookService {
                 bookRepository
                         .findByAuthorAuthorNameContainingIgnoreCaseOrBookNameContainingIgnoreCase(
                         author, title);
+    }
+
+    @Override
+    public List<Book> findBooksByCategory(String categoryName) {
+        return bookRepository.findByCategoryName(categoryName);
+    }
+
+    @Override
+    public List<Book> findBooksByCategoryId(int categoryId) {
+        return bookRepository.findByCategoryId(categoryId);
+    }
+
+    public List<Book> findBooksByAuthor(String authorName)  {
+        return bookRepository.findByAuthorName(authorName);
+    }
+
+    @Override
+    public List<Book> findBooksByAuthorId(int authorId) {
+        return bookRepository.findByAuthorId(authorId);
     }
 }
 

@@ -70,4 +70,48 @@ public class ControllerBook {
         List<BookGetDto> dtos = result.stream().map(BookGetDto::new).toList();
         return ResponseEntity.ok(dtos);
     }
+
+    @GetMapping("/by-category")
+    public ResponseEntity<List<BookGetDto>> getBooksByCategory(
+            @RequestParam("category") String categoryName
+    ) {
+        List<Book> books = bookService.findBooksByCategory(categoryName);
+        List<BookGetDto> dtos = books.stream()
+                .map(BookGetDto::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/by-category/{categoryId}")
+    public ResponseEntity<List<BookGetDto>> getBooksByCategoryId(
+            @PathVariable int categoryId
+    ) {
+        List<Book> books = bookService.findBooksByCategoryId(categoryId);
+        List<BookGetDto> dtos = books.stream()
+                .map(BookGetDto::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/by-author")
+    public ResponseEntity<List<BookGetDto>> getBooksByAuthor(
+            @RequestParam("author") String authorName
+    ) {
+        List<Book> books = bookService.findBooksByAuthor(authorName);
+        List<BookGetDto> dtos = books.stream()
+                .map(BookGetDto::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/by-author/{authorId}")
+    public ResponseEntity<List<BookGetDto>> getBooksByAuthorId(
+            @PathVariable int authorId
+    ) {
+        List<Book> books = bookService.findBooksByAuthorId(authorId);
+        List<BookGetDto> dtos = books.stream()
+                .map(BookGetDto::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
 }

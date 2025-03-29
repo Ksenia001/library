@@ -77,4 +77,25 @@ public class ControllerCategory {
         return ResponseEntity.ok(dtos);
     }
 
+    @GetMapping("/by-book")
+    public ResponseEntity<List<CategoryGetDto>> getCategoriesByBook(
+            @RequestParam("book") String bookName
+    ) {
+        List<Category> categories = categoryService.findCategoriesByBook(bookName);
+        List<CategoryGetDto> dtos = categories.stream()
+                .map(CategoryGetDto::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    @GetMapping("/by-book/{bookId}")
+    public ResponseEntity<List<CategoryGetDto>> getCategoriesByBookId(
+            @PathVariable int bookId
+    ) {
+        List<Category> categories = categoryService.findCategoriesByBookId(bookId);
+        List<CategoryGetDto> dtos = categories.stream()
+                .map(CategoryGetDto::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
 }

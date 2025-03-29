@@ -33,7 +33,7 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public Author createAuthor(AuthorCreateDto dto) {
         Author author = new Author();
-        author.setAuthorName(dto.getAuthorName());
+        author.setAuthorName(dto.getName());
         return authorRepository.save(author);
     }
 

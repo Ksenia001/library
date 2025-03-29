@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 public class BookCreateDto {
     @NotBlank
-    private String bookName;
+    private String name;
 
     @NotNull
     @Positive
