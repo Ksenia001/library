@@ -1,5 +1,6 @@
 package com.example.myspringproject.service.impl;
 
+import com.example.myspringproject.service.impl.EntityCache;
 import com.example.myspringproject.dto.create.AuthorCreateDto;
 import com.example.myspringproject.dto.update.AuthorUpdateDto;
 import com.example.myspringproject.model.Author;
@@ -18,6 +19,7 @@ public class AuthorServiceImpl implements AuthorService {
 
     private static final String AUTHOR_NOT_FOUND_MESSAGE = "Author not found with ID: ";
     private final AuthorRepository authorRepository;
+    private final EntityCache cache;
 
     @Override
     public List<Author> findAllAuthors() {
@@ -56,13 +58,17 @@ public class AuthorServiceImpl implements AuthorService {
         Author author = authorRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MESSAGE + id));
 
-        // Remove the author reference from all associated books
         List<Book> books = author.getBooks();
         if (books != null) {
             books.forEach(book -> book.setAuthor(null));
         }
 
         authorRepository.delete(author);
+    }
+
+    @Override
+    public List<Author> findAuthorsByBookCategory(String category) {
+        return authorRepository.findAuthorsByBookCategory(category);
     }
 
     @Override

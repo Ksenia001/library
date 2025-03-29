@@ -68,4 +68,13 @@ public class ControllerAuthor {
         List<AuthorGetDto> dtos = authors.stream().map(AuthorGetDto::new).toList();
         return ResponseEntity.ok(dtos);
     }
+
+    @GetMapping("/by-category")
+    public ResponseEntity<List<AuthorGetDto>> getAuthorsByBookCategory(
+            @RequestParam("category") String category) {
+
+        List<Author> authors = authorService.findAuthorsByBookCategory(category);
+        List<AuthorGetDto> dtos = authors.stream().map(AuthorGetDto::new).toList();
+        return ResponseEntity.ok(dtos);
+    }
 }

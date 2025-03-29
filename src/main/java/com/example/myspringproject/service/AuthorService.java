@@ -17,4 +17,6 @@ public interface AuthorService {
     void deleteAuthor(int id);
 
     List<Author> findAuthorsByName(String name);
+
+    List<Author> findAuthorsByBookCategory(String category);
 }
