@@ -13,4 +13,15 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
     @Query("SELECT DISTINCT a FROM Author a JOIN a.books b JOIN b.categories c WHERE "
             + "LOWER(c.categoryName) LIKE LOWER(CONCAT('%', :category, '%'))")
     List<Author> findAuthorsByBookCategory(@Param("category") String category);
+
+    @Query(value = """
+         SELECT DISTINCT a.*
+         FROM authors a
+         JOIN books b ON a.author_id = b.author_id
+         JOIN books_categories bc ON b.book_id = bc.book_id
+         JOIN categories c ON bc.category_id = c.category_id
+         WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :category, '%'))
+         """,
+            nativeQuery = true)
+    List<Author> findAuthorsByBookCategoryNative(@Param("category") String category);
 }

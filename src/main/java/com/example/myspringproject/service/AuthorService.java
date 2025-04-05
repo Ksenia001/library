@@ -19,4 +19,6 @@ public interface AuthorService {
     List<Author> findAuthorsByName(String name);
 
     List<Author> findAuthorsByBookCategory(String category);
+
+    List<Author> findAuthorsByBookCategoryNative(String category);
 }
