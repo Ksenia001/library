@@ -1,5 +1,6 @@
 package com.example.myspringproject.service.impl;
 
+import com.example.myspringproject.cache.CategoryCache;
 import com.example.myspringproject.dto.create.CategoryCreateDto;
 import com.example.myspringproject.dto.update.CategoryUpdateDto;
 import com.example.myspringproject.model.Book;
@@ -19,6 +20,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final BookRepository bookRepository;
+    private final CategoryCache categoryCache;
 
     @Override
     public List<Category> getAllCategories() {
@@ -27,7 +29,51 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Category getCategoryById(int id) {
-        return categoryRepository.findById(id).orElse(null);
+        String cacheKey = "category_id_" + id;
+        if (categoryCache.containsKey(cacheKey)) {
+            return categoryCache.get(cacheKey).stream()
+                    .filter(category -> category.getCategoryId() == id)
+                    .findFirst()
+                    .orElse(null);
+        }
+        Category category = categoryRepository.findById(id).orElse(null);
+        if (category != null) {
+            categoryCache.put(cacheKey, List.of(category));
+        }
+        return category;
+    }
+
+    @Override
+    public List<Category> findCategoriesByName(String name) {
+        String cacheKey = "categoriesByName_" + name;
+        if (categoryCache.containsKey(cacheKey)) {
+            return categoryCache.get(cacheKey);
+        }
+        List<Category> categories = categoryRepository.findByCategoryNameContainingIgnoreCase(name);
+        categoryCache.put(cacheKey, categories);
+        return categories;
+    }
+
+    @Override
+    public List<Category> findCategoriesByBook(String bookName) {
+        String cacheKey = "categoriesByBook_" + bookName;
+        if (categoryCache.containsKey(cacheKey)) {
+            return categoryCache.get(cacheKey);
+        }
+        List<Category> categories = categoryRepository.findCategoriesByBook(bookName);
+        categoryCache.put(cacheKey, categories);
+        return categories;
+    }
+
+    @Override
+    public List<Category> findCategoriesByBookId(int bookId) {
+        String cacheKey = "categoriesByBookId_" + bookId;
+        if (categoryCache.containsKey(cacheKey)) {
+            return categoryCache.get(cacheKey);
+        }
+        List<Category> categories = categoryRepository.findCategoriesByBookId(bookId);
+        categoryCache.put(cacheKey, categories);
+        return categories;
     }
 
     @Override
@@ -37,13 +83,13 @@ public class CategoryServiceImpl implements CategoryService {
 
         if (dto.getBookIds() != null) {
             List<Book> books = bookRepository.findAllById(dto.getBookIds());
-            // Проверяем, что все книги найдены
             if (books.size() != dto.getBookIds().size()) {
                 throw new IllegalArgumentException("Some books not found");
             }
             category.setBooks(books);
             books.forEach(book -> book.getCategories().add(category));
         }
+        categoryCache.clear();
 
         return categoryRepository.save(category);
     }
@@ -58,15 +104,14 @@ public class CategoryServiceImpl implements CategoryService {
 
         if (dto.getBookIds() != null) {
             List<Book> books = bookRepository.findAllById(dto.getBookIds());
-            // Заменяем весь список книг
             category.setBooks(books);
-            // Обновляем обратную связь
             books.forEach(book -> {
                 if (!book.getCategories().contains(category)) {
                     book.getCategories().add(category);
                 }
             });
         }
+        categoryCache.clear();
 
         return categoryRepository.save(category);
     }
@@ -77,26 +122,12 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found"));
 
-        // Удаляем категорию из всех связанных книг
         category.getBooks().forEach(book ->
             book.getCategories().removeIf(c -> c.getCategoryId() == id)
         );
 
         categoryRepository.delete(category);
-    }
+        categoryCache.clear();
 
-    @Override
-    public List<Category> findCategoriesByName(String name) {
-        return categoryRepository.findByCategoryNameContainingIgnoreCase(name);
-    }
-
-    @Override
-    public List<Category> findCategoriesByBook(String bookName) {
-        return categoryRepository.findCategoriesByBook(bookName);
-    }
-
-    @Override
-    public List<Category> findCategoriesByBookId(int bookId) {
-        return categoryRepository.findCategoriesByBookId(bookId);
     }
 }

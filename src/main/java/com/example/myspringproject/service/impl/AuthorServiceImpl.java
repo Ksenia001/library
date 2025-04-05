@@ -1,5 +1,6 @@
 package com.example.myspringproject.service.impl;
 
+import com.example.myspringproject.cache.AuthorCache;
 import com.example.myspringproject.dto.create.AuthorCreateDto;
 import com.example.myspringproject.dto.update.AuthorUpdateDto;
 import com.example.myspringproject.model.Author;
@@ -18,6 +19,7 @@ public class AuthorServiceImpl implements AuthorService {
 
     private static final String AUTHOR_NOT_FOUND_MESSAGE = "Author not found with ID: ";
     private final AuthorRepository authorRepository;
+    private final AuthorCache authorCache;
 
     @Override
     public List<Author> findAllAuthors() {
@@ -26,14 +28,57 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
     public Author findAuthorById(int id) {
-        return authorRepository.findById(id)
+        String cacheKey = "author_id_" + id;
+        if (authorCache.containsKey(cacheKey)) {
+            return authorCache.get(cacheKey).stream()
+                    .filter(author -> author.getAuthorId() == id)
+                    .findFirst()
+                    .orElse(null);
+        }
+        Author author = authorRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(AUTHOR_NOT_FOUND_MESSAGE + id));
+        authorCache.put(cacheKey, List.of(author));
+        return author;
+    }
+
+    @Override
+    public List<Author> findAuthorsByBookCategory(String category) {
+        String cacheKey = "authorsByCategory_" + category;
+        if (authorCache.containsKey(cacheKey)) {
+            return authorCache.get(cacheKey);
+        }
+        List<Author> authors = authorRepository.findAuthorsByBookCategory(category);
+        authorCache.put(cacheKey, authors);
+        return authors;
+    }
+
+    @Override
+    public List<Author> findAuthorsByName(String name) {
+        String cacheKey = "authorsByName_" + name;
+        if (authorCache.containsKey(cacheKey)) {
+            return authorCache.get(cacheKey);
+        }
+        List<Author> authors = authorRepository.findByAuthorNameContainingIgnoreCase(name);
+        authorCache.put(cacheKey, authors);
+        return authors;
+    }
+
+    @Override
+    public List<Author> findAuthorsByBookCategoryNative(String category) {
+        String cacheKey = "authorsByCategoryNative_" + category;
+        if (authorCache.containsKey(cacheKey)) {
+            return authorCache.get(cacheKey);
+        }
+        List<Author> authors = authorRepository.findAuthorsByBookCategoryNative(category);
+        authorCache.put(cacheKey, authors);
+        return authors;
     }
 
     @Override
     public Author createAuthor(AuthorCreateDto dto) {
         Author author = new Author();
         author.setAuthorName(dto.getName());
+        authorCache.clear();
         return authorRepository.save(author);
     }
 
@@ -46,7 +91,7 @@ public class AuthorServiceImpl implements AuthorService {
         if (dto.getAuthorName() != null && !dto.getAuthorName().isBlank()) {
             author.setAuthorName(dto.getAuthorName());
         }
-
+        authorCache.clear();
         return authorRepository.save(author);
     }
 
@@ -60,22 +105,7 @@ public class AuthorServiceImpl implements AuthorService {
         if (books != null) {
             books.forEach(book -> book.setAuthor(null));
         }
-
         authorRepository.delete(author);
-    }
-
-    @Override
-    public List<Author> findAuthorsByBookCategory(String category) {
-        return authorRepository.findAuthorsByBookCategory(category);
-    }
-
-    @Override
-    public List<Author> findAuthorsByName(String name) {
-        return authorRepository.findByAuthorNameContainingIgnoreCase(name);
-    }
-
-    @Override
-    public List<Author> findAuthorsByBookCategoryNative(String category) {
-        return authorRepository.findAuthorsByBookCategoryNative(category);
+        authorCache.clear();
     }
 }
