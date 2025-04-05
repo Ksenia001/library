@@ -23,7 +23,7 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
     public List<Author> findAllAuthors() {
-        return authorRepository.findAll();
+        return authorRepository.findAllWithBooks();
     }
 
     @Override

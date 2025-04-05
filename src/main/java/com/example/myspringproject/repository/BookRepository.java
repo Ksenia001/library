@@ -8,6 +8,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface BookRepository extends JpaRepository<Book, Integer> {
 
+    @Query("SELECT b FROM Book b LEFT JOIN FETCH b.categories LEFT JOIN FETCH b.author")
+    List<Book> findAllWithCategoriesAndAuthor();
+
     List<Book> findByAuthorAuthorNameContainingIgnoreCaseOrBookNameContainingIgnoreCase(
             String authorName, String title
     );
