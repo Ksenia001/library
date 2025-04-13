@@ -30,4 +30,7 @@ public interface AuthorRepository extends JpaRepository<Author, Integer> {
          """,
             nativeQuery = true)
     List<Author> findAuthorsByBookCategoryNative(@Param("category") String category);
+
+    boolean existsByAuthorName(String name);
+
 }

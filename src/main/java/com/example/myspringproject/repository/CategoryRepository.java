@@ -15,4 +15,6 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
     @Query("SELECT c FROM Category c JOIN c.books b WHERE b.bookId = :bookId")
     List<Category> findCategoriesByBookId(@Param("bookId") int bookId);
+
+    boolean existsByCategoryName(String name);
 }

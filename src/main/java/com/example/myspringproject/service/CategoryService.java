@@ -22,5 +22,6 @@ public interface CategoryService {
     List<Category> findCategoriesByBook(String bookName);
 
     List<Category> findCategoriesByBookId(int bookId);
+
 }
 

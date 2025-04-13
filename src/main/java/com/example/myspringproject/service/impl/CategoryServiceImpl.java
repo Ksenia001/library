@@ -3,6 +3,7 @@ package com.example.myspringproject.service.impl;
 import com.example.myspringproject.cache.CategoryCache;
 import com.example.myspringproject.dto.create.CategoryCreateDto;
 import com.example.myspringproject.dto.update.CategoryUpdateDto;
+import com.example.myspringproject.exception.UniqueConstraintViolationException;
 import com.example.myspringproject.model.Book;
 import com.example.myspringproject.model.Category;
 import com.example.myspringproject.repository.BookRepository;
@@ -36,7 +37,8 @@ public class CategoryServiceImpl implements CategoryService {
                     .findFirst()
                     .orElse(null);
         }
-        Category category = categoryRepository.findById(id).orElse(null);
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Категория не найдена по id:" + id));
         if (category != null) {
             categoryCache.put(cacheKey, List.of(category));
         }
@@ -47,9 +49,16 @@ public class CategoryServiceImpl implements CategoryService {
     public List<Category> findCategoriesByName(String name) {
         String cacheKey = "categoriesByName_" + name;
         if (categoryCache.containsKey(cacheKey)) {
-            return categoryCache.get(cacheKey);
+            List<Category> cachedCategories = categoryCache.get(cacheKey);
+            if (cachedCategories.isEmpty()) {
+                throw new EntityNotFoundException("Категории не найдены по имени: " + name);
+            }
+            return cachedCategories;
         }
         List<Category> categories = categoryRepository.findByCategoryNameContainingIgnoreCase(name);
+        if (categories.isEmpty()) {
+            throw new EntityNotFoundException("Категории не найдены по имени: " + name);
+        }
         categoryCache.put(cacheKey, categories);
         return categories;
     }
@@ -58,15 +67,26 @@ public class CategoryServiceImpl implements CategoryService {
     public List<Category> findCategoriesByBook(String bookName) {
         String cacheKey = "categoriesByBook_" + bookName;
         if (categoryCache.containsKey(cacheKey)) {
-            return categoryCache.get(cacheKey);
+            List<Category> cachedCategories = categoryCache.get(cacheKey);
+            if (cachedCategories.isEmpty()) {
+                throw new EntityNotFoundException("Категории не найдены по книге: " + bookName);
+            }
+            return cachedCategories;
         }
         List<Category> categories = categoryRepository.findCategoriesByBook(bookName);
+        if (categories.isEmpty()) {
+            throw new EntityNotFoundException("Категории не найдены по книге: " + bookName);
+        }
         categoryCache.put(cacheKey, categories);
         return categories;
     }
 
     @Override
     public List<Category> findCategoriesByBookId(int bookId) {
+        if (!bookRepository.existsById(bookId)) {
+            throw new EntityNotFoundException("Книга не найдена с id: " + bookId);
+        }
+
         String cacheKey = "categoriesByBookId_" + bookId;
         if (categoryCache.containsKey(cacheKey)) {
             return categoryCache.get(cacheKey);
@@ -78,6 +98,10 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Category createCategory(CategoryCreateDto dto) {
+        if (categoryRepository.existsByCategoryName(dto.getName())) {
+            throw new UniqueConstraintViolationException("Категория с таким именем уже существует");
+        }
+
         Category category = new Category();
         category.setCategoryName(dto.getName());
 

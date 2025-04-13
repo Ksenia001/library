@@ -4,6 +4,7 @@ import com.example.myspringproject.cache.BookCache;
 import com.example.myspringproject.cache.CategoryCache;
 import com.example.myspringproject.dto.create.BookCreateDto;
 import com.example.myspringproject.dto.update.BookUpdateDto;
+import com.example.myspringproject.exception.ValidationException;
 import com.example.myspringproject.model.Author;
 import com.example.myspringproject.model.Book;
 import com.example.myspringproject.model.Category;
@@ -43,7 +44,8 @@ public class BookServiceImpl implements BookService {
                     .findFirst()
                     .orElse(null);
         }
-        Book book = bookRepository.findById(id).orElse(null);
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Книга не найдена по id:" + id));
         if (book != null) {
             bookCache.put(cacheKey, List.of(book));
         }
@@ -54,11 +56,20 @@ public class BookServiceImpl implements BookService {
     public List<Book> searchBooks(String author, String title) {
         String cacheKey = "searchBooks_" + author + "_" + title;
         if (bookCache.containsKey(cacheKey)) {
-            return bookCache.get(cacheKey);
+            List<Book> cachedBooks = bookCache.get(cacheKey);
+            if (cachedBooks.isEmpty()) {
+                throw new EntityNotFoundException("Книга не найдены по автору: "
+                        + author + " или названию: " + title);
+            }
+            return cachedBooks;
         }
         List<Book> books = bookRepository
                 .findByAuthorAuthorNameContainingIgnoreCaseOrBookNameContainingIgnoreCase(
                 author, title);
+        if (books.isEmpty()) {
+            throw new EntityNotFoundException("Книги не найдена по автору: "
+                    + author + " или названию: " + title);
+        }
         bookCache.put(cacheKey, books);
         return books;
     }
@@ -67,15 +78,26 @@ public class BookServiceImpl implements BookService {
     public List<Book> findBooksByCategory(String categoryName) {
         String cacheKey = "booksByCategory_" + categoryName;
         if (bookCache.containsKey(cacheKey)) {
-            return bookCache.get(cacheKey);
+            List<Book> cachedBooks = bookCache.get(cacheKey);
+            if (cachedBooks.isEmpty()) {
+                throw new EntityNotFoundException("Книги не найдены по категории: " + categoryName);
+            }
+            return cachedBooks;
         }
         List<Book> books = bookRepository.findByCategoryName(categoryName);
+        if (books.isEmpty()) {
+            throw new EntityNotFoundException("Книги не найдены по категории: " + categoryName);
+        }
         bookCache.put(cacheKey, books);
         return books;
     }
 
     @Override
     public List<Book> findBooksByCategoryId(int categoryId) {
+        if (!categoryRepository.existsById(categoryId)) {
+            throw new EntityNotFoundException("Категория не найдена с id: " + categoryId);
+        }
+
         String cacheKey = "booksByCategoryId_" + categoryId;
         if (bookCache.containsKey(cacheKey)) {
             return bookCache.get(cacheKey);
@@ -88,15 +110,27 @@ public class BookServiceImpl implements BookService {
     public List<Book> findBooksByAuthor(String authorName)  {
         String cacheKey = "booksByAuthor_" + authorName;
         if (bookCache.containsKey(cacheKey)) {
-            return bookCache.get(cacheKey);
+            List<Book> cachedBooks = bookCache.get(cacheKey);
+            if (cachedBooks.isEmpty()) {
+                throw new EntityNotFoundException("Книги не найдены по автору: "
+                        + authorName);
+            }
+            return cachedBooks;
         }
         List<Book> books = bookRepository.findByAuthorName(authorName);
+        if (books.isEmpty()) {
+            throw new EntityNotFoundException("Книги не найдены по автору: " + authorName);
+        }
         bookCache.put(cacheKey, books);
         return books;
     }
 
     @Override
     public List<Book> findBooksByAuthorId(int authorId) {
+        if (!authorRepository.existsById(authorId)) {
+            throw new EntityNotFoundException("Автор не найден с id: " + authorId);
+        }
+
         String cacheKey = "booksByAuthorId_" + authorId;
         if (bookCache.containsKey(cacheKey)) {
             return bookCache.get(cacheKey);
@@ -108,6 +142,14 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public Book createBook(BookCreateDto dto) {
+        List<Book> existingBooks = bookRepository.findByAuthorId(dto.getAuthorId());
+        boolean isDuplicate = existingBooks.stream()
+                .anyMatch(book -> book.getBookName().equalsIgnoreCase(dto.getName()));
+
+        if (isDuplicate) {
+            throw new ValidationException(List.of("У автора уже есть книга с таким названием"));
+        }
+
         Book book = new Book();
         book.setBookName(dto.getName());
 
