@@ -37,7 +37,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UniqueConstraintViolationException.class)
-    public ResponseEntity<String> handleUniqueConstraintViolation(UniqueConstraintViolationException ex) {
+    public ResponseEntity<String> handleUniqueConstraintViolation(
+            UniqueConstraintViolationException ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
     }
 }

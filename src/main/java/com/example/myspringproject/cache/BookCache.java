@@ -22,7 +22,8 @@ public class BookCache {
             log.debug("Removed oldest key from cache: {}", oldestKey);
         }
         cache.put(key, value);
-        log.info("New request added to cache. Key: {}. Current cache size: {}", key, cache.size());
+        log.info("New request added to cache. Key: { }. Current cache size: { }",
+                key, cache.size());
     }
 
     public List<Book> get(String key) {
