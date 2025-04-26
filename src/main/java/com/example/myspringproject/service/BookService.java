@@ -26,4 +26,6 @@ public interface BookService {
     List<Book> findBooksByAuthor(String authorName);
 
     List<Book> findBooksByAuthorId(int authorId);
+
+    List<Book> createBooks(List<BookCreateDto> dtos);
 }

@@ -1,6 +1,7 @@
 package com.example.myspringproject.controller;
 
 import com.example.myspringproject.dto.create.BookCreateDto;
+import com.example.myspringproject.dto.create.BulkCreateDto;
 import com.example.myspringproject.dto.get.BookGetDto;
 import com.example.myspringproject.dto.update.BookUpdateDto;
 import com.example.myspringproject.model.Book;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +33,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class ControllerBook {
 
     private final BookService bookService;
+
+    @Operation(summary = "Create many books", description = "Creates many books at once")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Books created successfully"),
+        @ApiResponse(responseCode = "400", description = "Incorrect entered data")
+    })
+    @PostMapping("/bulk")
+    public ResponseEntity<List<BookGetDto>> createBooks(
+            @Parameter(description = "Data to create books")
+            @Valid @RequestBody
+            BulkCreateDto<BookCreateDto> books) {
+        List<Book> createdBooks = bookService.createBooks(books.getDtos());
+        List<BookGetDto> dtos = createdBooks.stream()
+                .map(BookGetDto::new)
+                .toList();
+        return ResponseEntity.status(HttpStatus.CREATED).body(dtos);
+    }
+
 
     @GetMapping
     @Operation(summary = "Get all books", description = "Retrieve a list of all books")

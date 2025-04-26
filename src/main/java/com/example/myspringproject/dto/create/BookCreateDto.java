@@ -17,5 +17,9 @@ public class BookCreateDto {
     @Positive(message = "ID автора должен быть положительным")
     private Integer authorId;
 
+    private String authorName;
+
     private List<@Positive(message = "ID категории должен быть положительным") Integer> categoryIds;
+
+    private List<String> categoryNames;
 }
