@@ -1,4 +1,4 @@
-// file: src/test/java/com/example/myspringproject/service/impl/BookServiceImplTest.java
+
 package com.example.myspringproject.service.impl;
 
 import com.example.myspringproject.cache.BookCache;
@@ -21,7 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
-// Unused imports removed: Stream, Collectors
+
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -55,45 +55,45 @@ class BookServiceImplTest {
         author1 = new Author();
         author1.setAuthorId(1);
         author1.setAuthorName("Test Author");
-        author1.setBooks(new ArrayList<>()); // Initialize books list
+        author1.setBooks(new ArrayList<>());
 
         category1 = new Category();
         category1.setCategoryId(1);
         category1.setCategoryName("Fiction");
-        category1.setBooks(new ArrayList<>()); // Initialize books list
+        category1.setBooks(new ArrayList<>());
 
         category2 = new Category();
         category2.setCategoryId(2);
         category2.setCategoryName("Sci-Fi");
-        category2.setBooks(new ArrayList<>()); // Initialize books list
+        category2.setBooks(new ArrayList<>());
 
         book1 = new Book();
         book1.setBookId(1);
         book1.setBookName("Test Book 1");
         book1.setAuthor(author1);
         book1.setCategories(new ArrayList<>(List.of(category1)));
-        author1.getBooks().add(book1); // Add book to author's list
-        category1.getBooks().add(book1); // Add book to category's list
+        author1.getBooks().add(book1);
+        category1.getBooks().add(book1);
 
         book2 = new Book();
         book2.setBookId(2);
         book2.setBookName("Test Book 2");
         book2.setAuthor(author1);
         book2.setCategories(new ArrayList<>(List.of(category1, category2)));
-        author1.getBooks().add(book2); // Add book to author's list
-        category1.getBooks().add(book2); // Add book to category's list
-        category2.getBooks().add(book2); // Add book to category's list
+        author1.getBooks().add(book2);
+        category1.getBooks().add(book2);
+        category2.getBooks().add(book2);
     }
 
     @Test
     void findAllBooks_shouldReturnAllBooks() {
-        // Arrange
+
         when(bookRepository.findAllWithCategoriesAndAuthor()).thenReturn(List.of(book1, book2));
 
-        // Act
+
         List<Book> result = bookServiceImpl.findAllBooks();
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(2, result.size());
         verify(bookRepository, times(1)).findAllWithCategoriesAndAuthor();
@@ -101,16 +101,16 @@ class BookServiceImplTest {
 
     @Test
     void findBookById_whenCacheHit_shouldReturnBookFromCache() {
-        // Arrange
+
         int bookId = 1;
         String cacheKey = "book_id_" + bookId;
         when(bookCache.containsKey(cacheKey)).thenReturn(true);
         when(bookCache.get(cacheKey)).thenReturn(List.of(book1));
 
-        // Act
+
         Book result = bookServiceImpl.findBookById(bookId);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(bookId, result.getBookId());
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -120,16 +120,16 @@ class BookServiceImplTest {
 
     @Test
     void findBookById_whenCacheMissAndFound_shouldReturnBookFromRepoAndCache() {
-        // Arrange
+
         int bookId = 1;
         String cacheKey = "book_id_" + bookId;
         when(bookCache.containsKey(cacheKey)).thenReturn(false);
         when(bookRepository.findById(bookId)).thenReturn(Optional.of(book1));
 
-        // Act
+
         Book result = bookServiceImpl.findBookById(bookId);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(bookId, result.getBookId());
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -140,15 +140,15 @@ class BookServiceImplTest {
 
     @Test
     void findBookById_whenCacheMissAndNotFound_shouldThrowException() {
-        // Arrange
+
         int bookId = 99;
         String cacheKey = "book_id_" + bookId;
         when(bookCache.containsKey(cacheKey)).thenReturn(false);
         when(bookRepository.findById(bookId)).thenReturn(Optional.empty());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.findBookById(bookId) // Expression lambda
+                () -> bookServiceImpl.findBookById(bookId)
         );
         assertEquals("Книга не найдена по id:" + bookId, exception.getMessage());
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -159,17 +159,17 @@ class BookServiceImplTest {
 
     @Test
     void searchBooks_whenCacheHit_shouldReturnBooksFromCache() {
-        // Arrange
+
         String author = "Test Author";
         String title = "Test Book";
         String cacheKey = "searchBooks_" + author + "_" + title;
         when(bookCache.containsKey(cacheKey)).thenReturn(true);
         when(bookCache.get(cacheKey)).thenReturn(List.of(book1, book2));
 
-        // Act
+
         List<Book> result = bookServiceImpl.searchBooks(author, title);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(2, result.size());
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -179,7 +179,7 @@ class BookServiceImplTest {
 
     @Test
     void searchBooks_whenCacheMissAndFound_shouldReturnBooksFromRepoAndCache() {
-        // Arrange
+
         String author = "Test Author";
         String title = "Test Book";
         String cacheKey = "searchBooks_" + author + "_" + title;
@@ -187,10 +187,10 @@ class BookServiceImplTest {
         when(bookRepository.findByAuthorAuthorNameContainingIgnoreCaseOrBookNameContainingIgnoreCase(author, title))
                 .thenReturn(List.of(book1, book2));
 
-        // Act
+
         List<Book> result = bookServiceImpl.searchBooks(author, title);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(2, result.size());
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -201,7 +201,7 @@ class BookServiceImplTest {
 
     @Test
     void searchBooks_whenCacheMissAndNotFound_shouldThrowException() {
-        // Arrange
+
         String author = "Unknown Author";
         String title = "Unknown Title";
         String cacheKey = "searchBooks_" + author + "_" + title;
@@ -209,9 +209,9 @@ class BookServiceImplTest {
         when(bookRepository.findByAuthorAuthorNameContainingIgnoreCaseOrBookNameContainingIgnoreCase(author, title))
                 .thenReturn(Collections.emptyList());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.searchBooks(author, title) // Expression lambda
+                () -> bookServiceImpl.searchBooks(author, title)
         );
         assertTrue(exception.getMessage().contains("Книги не найдена по автору:"));
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -244,7 +244,7 @@ class BookServiceImplTest {
         when(categoryRepository.existsById(categoryId)).thenReturn(false);
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.findBooksByCategoryId(categoryId) // Expression lambda
+                () -> bookServiceImpl.findBooksByCategoryId(categoryId)
         );
 
         assertEquals("Категория не найдена с id: " + categoryId, exception.getMessage());
@@ -277,7 +277,7 @@ class BookServiceImplTest {
         when(authorRepository.existsById(authorId)).thenReturn(false);
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.findBooksByAuthorId(authorId) // Expression lambda
+                () -> bookServiceImpl.findBooksByAuthorId(authorId)
         );
 
         assertEquals("Автор не найден с id: " + authorId, exception.getMessage());
@@ -289,33 +289,33 @@ class BookServiceImplTest {
 
     @Test
     void createBook_whenValidDto_shouldCreateAndReturnBook() {
-        // Arrange
+
         BookCreateDto dto = new BookCreateDto();
         dto.setName("New Book");
         dto.setAuthorId(1);
         dto.setCategoryIds(List.of(1, 2));
 
-        when(bookRepository.findByAuthorId(dto.getAuthorId())).thenReturn(Collections.emptyList()); // No duplicates
+        when(bookRepository.findByAuthorId(dto.getAuthorId())).thenReturn(Collections.emptyList());
         when(authorRepository.findById(dto.getAuthorId())).thenReturn(Optional.of(author1));
         when(categoryRepository.findAllById(dto.getCategoryIds())).thenReturn(List.of(category1, category2));
-        // Mock the save operation to return the book with potentially generated ID
+
         when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> {
             Book bookToSave = invocation.getArgument(0);
-            bookToSave.setBookId(3); // Simulate ID generation
+            bookToSave.setBookId(3);
             return bookToSave;
         });
 
-        // Act
+
         Book result = bookServiceImpl.createBook(dto);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals("New Book", result.getBookName());
         assertEquals(author1, result.getAuthor());
         assertEquals(2, result.getCategories().size());
         assertTrue(result.getCategories().contains(category1));
         assertTrue(result.getCategories().contains(category2));
-        assertTrue(author1.getBooks().contains(result)); // Check bidirectional relationship
+        assertTrue(author1.getBooks().contains(result));
         assertTrue(category1.getBooks().contains(result));
         assertTrue(category2.getBooks().contains(result));
 
@@ -329,18 +329,18 @@ class BookServiceImplTest {
 
     @Test
     void createBook_whenAuthorNotFound_shouldThrowException() {
-        // Arrange
+
         BookCreateDto dto = new BookCreateDto();
         dto.setName("New Book");
-        dto.setAuthorId(99); // Non-existent author
+        dto.setAuthorId(99);
         dto.setCategoryIds(List.of(1));
 
         when(bookRepository.findByAuthorId(dto.getAuthorId())).thenReturn(Collections.emptyList());
         when(authorRepository.findById(dto.getAuthorId())).thenReturn(Optional.empty());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.createBook(dto) // Expression lambda
+                () -> bookServiceImpl.createBook(dto)
         );
         assertEquals("Author not found with ID: " + dto.getAuthorId(), exception.getMessage());
 
@@ -354,19 +354,19 @@ class BookServiceImplTest {
 
     @Test
     void createBook_whenCategoryNotFound_shouldThrowException() {
-        // Arrange
+
         BookCreateDto dto = new BookCreateDto();
         dto.setName("New Book");
         dto.setAuthorId(1);
-        dto.setCategoryIds(List.of(1, 99)); // 99 is non-existent
+        dto.setCategoryIds(List.of(1, 99));
 
         when(bookRepository.findByAuthorId(dto.getAuthorId())).thenReturn(Collections.emptyList());
         when(authorRepository.findById(dto.getAuthorId())).thenReturn(Optional.of(author1));
-        when(categoryRepository.findAllById(dto.getCategoryIds())).thenReturn(List.of(category1)); // Only returns existing
+        when(categoryRepository.findAllById(dto.getCategoryIds())).thenReturn(List.of(category1));
 
-        // Act & Assert
+
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> bookServiceImpl.createBook(dto) // Expression lambda
+                () -> bookServiceImpl.createBook(dto)
         );
         assertEquals("Some categories not found", exception.getMessage());
 
@@ -380,17 +380,17 @@ class BookServiceImplTest {
 
     @Test
     void createBook_whenDuplicateBookForAuthor_shouldThrowValidationException() {
-        // Arrange
+
         BookCreateDto dto = new BookCreateDto();
-        dto.setName("Test Book 1"); // Existing book name for author1
+        dto.setName("Test Book 1");
         dto.setAuthorId(1);
 
-        // Simulate finding an existing book with the same name for this author
+
         when(bookRepository.findByAuthorId(dto.getAuthorId())).thenReturn(List.of(book1));
 
-        // Act & Assert
+
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookServiceImpl.createBook(dto) // Expression lambda
+                () -> bookServiceImpl.createBook(dto)
         );
         assertEquals(1, exception.getErrors().size());
         assertEquals("У автора уже есть книга с таким названием", exception.getErrors().get(0));
@@ -406,14 +406,14 @@ class BookServiceImplTest {
 
     @Test
     void updateBook_whenValidDto_shouldUpdateAndReturnBook() {
-        // Arrange
+
         int bookId = 1;
         BookUpdateDto dto = new BookUpdateDto();
         dto.setBookName("Updated Book Name");
-        dto.setAuthorId(1); // Assuming author remains the same or is updated
-        dto.setCategoriesIds(List.of(2)); // Change category to Sci-Fi
+        dto.setAuthorId(1);
+        dto.setCategoriesIds(List.of(2));
 
-        Author existingAuthor = new Author(); // Can be the same or different
+        Author existingAuthor = new Author();
         existingAuthor.setAuthorId(1);
         existingAuthor.setAuthorName("Test Author");
 
@@ -422,10 +422,10 @@ class BookServiceImplTest {
         when(categoryRepository.findAllById(dto.getCategoriesIds())).thenReturn(List.of(category2));
         when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
+
         Book result = bookServiceImpl.updateBook(bookId, dto);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(bookId, result.getBookId());
         assertEquals("Updated Book Name", result.getBookName());
@@ -436,23 +436,23 @@ class BookServiceImplTest {
         verify(bookRepository, times(1)).findById(bookId);
         verify(authorRepository, times(1)).findById(dto.getAuthorId());
         verify(categoryRepository, times(1)).findAllById(dto.getCategoriesIds());
-        verify(bookRepository, times(1)).save(book1); // Verify save was called on the original object
+        verify(bookRepository, times(1)).save(book1);
         verify(bookCache, times(1)).clear();
         verify(categoryCache, times(1)).clear();
     }
 
     @Test
     void updateBook_whenBookNotFound_shouldThrowException() {
-        // Arrange
+
         int bookId = 99;
         BookUpdateDto dto = new BookUpdateDto();
         dto.setBookName("Update Attempt");
 
         when(bookRepository.findById(bookId)).thenReturn(Optional.empty());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.updateBook(bookId, dto) // Expression lambda
+                () -> bookServiceImpl.updateBook(bookId, dto)
         );
         assertEquals("Book not found", exception.getMessage());
 
@@ -466,18 +466,18 @@ class BookServiceImplTest {
 
     @Test
     void updateBook_whenAuthorNotFound_shouldThrowException() {
-        // Arrange
+
         int bookId = 1;
         BookUpdateDto dto = new BookUpdateDto();
         dto.setBookName("Update Attempt");
-        dto.setAuthorId(99); // Non-existent author
+        dto.setAuthorId(99);
 
         when(bookRepository.findById(bookId)).thenReturn(Optional.of(book1));
         when(authorRepository.findById(dto.getAuthorId())).thenReturn(Optional.empty());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.updateBook(bookId, dto) // Expression lambda
+                () -> bookServiceImpl.updateBook(bookId, dto)
         );
         assertEquals("Author not found", exception.getMessage());
 
@@ -492,9 +492,9 @@ class BookServiceImplTest {
 
     @Test
     void deleteBookById_whenBookExists_shouldDeleteBook() {
-        // Arrange
+
         int bookId = 1;
-        // Ensure the book has an author with an initialized list for removal
+
         Author authorWithBook = new Author();
         authorWithBook.setAuthorId(1);
         authorWithBook.setAuthorName("Test Author");
@@ -506,27 +506,27 @@ class BookServiceImplTest {
         when(bookRepository.findById(bookId)).thenReturn(Optional.of(book1));
         doNothing().when(bookRepository).deleteById(bookId);
 
-        // Act
+
         bookServiceImpl.deleteBookById(bookId);
 
-        // Assert
+
         verify(bookRepository, times(1)).findById(bookId);
         verify(bookRepository, times(1)).deleteById(bookId);
         verify(bookCache, times(1)).clear();
         verify(categoryCache, times(1)).clear();
-        // Verify the book was removed from the author's list
+
         assertFalse(authorWithBook.getBooks().contains(book1));
     }
 
     @Test
     void deleteBookById_whenBookNotFound_shouldThrowException() {
-        // Arrange
+
         int bookId = 99;
         when(bookRepository.findById(bookId)).thenReturn(Optional.empty());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.deleteBookById(bookId) // Expression lambda
+                () -> bookServiceImpl.deleteBookById(bookId)
         );
         assertEquals("Book not found", exception.getMessage());
 
@@ -536,11 +536,11 @@ class BookServiceImplTest {
         verify(categoryCache, never()).clear();
     }
 
-    // --- Tests for createBooks (Bulk) ---
+
 
     @Test
     void createBooks_whenValidDtosWithIds_shouldCreateBooks() {
-        // Arrange
+
         BookCreateDto dto1 = new BookCreateDto();
         dto1.setName("Bulk Book 1");
         dto1.setAuthorId(1);
@@ -553,19 +553,19 @@ class BookServiceImplTest {
 
         List<BookCreateDto> dtos = List.of(dto1, dto2);
 
-        // Mock repository calls
+
         when(authorRepository.findAllById(Set.of(1))).thenReturn(List.of(author1));
         when(categoryRepository.findAllById(Set.of(1, 2))).thenReturn(List.of(category1, category2));
-        when(bookRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0)); // Return the input list
-        // Mock the calls that happen even with empty sets
-        when(authorRepository.findByAuthorNameIn(Collections.emptySet())).thenReturn(Collections.emptyList()); // Removed eq()
-        when(categoryRepository.findByCategoryNameIn(Collections.emptySet())).thenReturn(Collections.emptyList()); // Removed eq()
+        when(bookRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(authorRepository.findByAuthorNameIn(Collections.emptySet())).thenReturn(Collections.emptyList());
+        when(categoryRepository.findByCategoryNameIn(Collections.emptySet())).thenReturn(Collections.emptyList());
 
 
-        // Act
+
         List<Book> result = bookServiceImpl.createBooks(dtos);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(2, result.size());
         assertEquals("Bulk Book 1", result.get(0).getBookName());
@@ -574,7 +574,7 @@ class BookServiceImplTest {
         assertEquals(author1, result.get(1).getAuthor());
         assertTrue(result.get(0).getCategories().contains(category1));
         assertTrue(result.get(1).getCategories().contains(category2));
-        // Check bidirectional relationships were updated (assuming saveAll handles this, or it's done before)
+
         assertTrue(author1.getBooks().stream().anyMatch(b -> b.getBookName().equals("Bulk Book 1")));
         assertTrue(author1.getBooks().stream().anyMatch(b -> b.getBookName().equals("Bulk Book 2")));
         assertTrue(category1.getBooks().stream().anyMatch(b -> b.getBookName().equals("Bulk Book 1")));
@@ -583,11 +583,11 @@ class BookServiceImplTest {
 
         verify(authorRepository, times(1)).findAllById(Set.of(1));
         verify(categoryRepository, times(1)).findAllById(Set.of(1, 2));
-        // Verify the name lookups ARE called, but with empty sets
-        verify(authorRepository, times(1)).findByAuthorNameIn(Collections.emptySet()); // Removed eq()
-        verify(categoryRepository, times(1)).findByCategoryNameIn(Collections.emptySet()); // Removed eq()
-        verify(authorRepository, never()).saveAll(anyList()); // No new authors
-        verify(categoryRepository, never()).saveAll(anyList()); // No new categories
+
+        verify(authorRepository, times(1)).findByAuthorNameIn(Collections.emptySet());
+        verify(categoryRepository, times(1)).findByCategoryNameIn(Collections.emptySet());
+        verify(authorRepository, never()).saveAll(anyList());
+        verify(categoryRepository, never()).saveAll(anyList());
         verify(bookRepository, times(1)).saveAll(anyList());
         verify(bookCache, times(1)).clear();
         verify(categoryCache, times(1)).clear();
@@ -595,7 +595,7 @@ class BookServiceImplTest {
 
     @Test
     void createBooks_whenValidDtosWithNames_shouldCreateBooksAndNewEntities() {
-        // Arrange
+
         BookCreateDto dto1 = new BookCreateDto();
         dto1.setName("Bulk Book Name 1");
         dto1.setAuthorName("New Author");
@@ -613,41 +613,41 @@ class BookServiceImplTest {
         newCategory.setCategoryName("New Category");
         newCategory.setBooks(new ArrayList<>());
 
-        // Mock repository calls
-        when(authorRepository.findByAuthorNameIn(Set.of("New Author"))).thenReturn(Collections.emptyList()); // Author doesn't exist
-        when(categoryRepository.findByCategoryNameIn(Set.of("New Category"))).thenReturn(Collections.emptyList()); // Category doesn't exist
+
+        when(authorRepository.findByAuthorNameIn(Set.of("New Author"))).thenReturn(Collections.emptyList());
+        when(categoryRepository.findByCategoryNameIn(Set.of("New Category"))).thenReturn(Collections.emptyList());
         when(authorRepository.saveAll(anyList())).thenAnswer(invocation -> {
             List<Author> authorsToSave = invocation.getArgument(0);
-            authorsToSave.get(0).setAuthorId(10); // Simulate ID generation
+            authorsToSave.get(0).setAuthorId(10);
             return authorsToSave;
         });
         when(categoryRepository.saveAll(anyList())).thenAnswer(invocation -> {
             List<Category> catsToSave = invocation.getArgument(0);
-            catsToSave.get(0).setCategoryId(10); // Simulate ID generation
+            catsToSave.get(0).setCategoryId(10);
             return catsToSave;
         });
         when(bookRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-        // Mock ID lookups (will be called with empty sets)
-        when(authorRepository.findAllById(Collections.emptySet())).thenReturn(Collections.emptyList()); // Removed eq()
-        when(categoryRepository.findAllById(Collections.emptySet())).thenReturn(Collections.emptyList()); // Removed eq()
+
+        when(authorRepository.findAllById(Collections.emptySet())).thenReturn(Collections.emptyList());
+        when(categoryRepository.findAllById(Collections.emptySet())).thenReturn(Collections.emptyList());
 
 
-        // Act
+
         List<Book> result = bookServiceImpl.createBooks(dtos);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("Bulk Book Name 1", result.get(0).getBookName());
         assertEquals("New Author", result.get(0).getAuthor().getAuthorName());
-        assertEquals(10, result.get(0).getAuthor().getAuthorId()); // Check generated ID
+        assertEquals(10, result.get(0).getAuthor().getAuthorId());
         assertEquals("New Category", result.get(0).getCategories().get(0).getCategoryName());
-        assertEquals(10, result.get(0).getCategories().get(0).getCategoryId()); // Check generated ID
+        assertEquals(10, result.get(0).getCategories().get(0).getCategoryId());
 
         verify(authorRepository, times(1)).findByAuthorNameIn(Set.of("New Author"));
         verify(categoryRepository, times(1)).findByCategoryNameIn(Set.of("New Category"));
-        verify(authorRepository, times(1)).saveAll(anyList()); // New author saved
-        verify(categoryRepository, times(1)).saveAll(anyList()); // New category saved
+        verify(authorRepository, times(1)).saveAll(anyList());
+        verify(categoryRepository, times(1)).saveAll(anyList());
         verify(bookRepository, times(1)).saveAll(anyList());
         verify(bookCache, times(1)).clear();
         verify(categoryCache, times(1)).clear();
@@ -655,17 +655,17 @@ class BookServiceImplTest {
 
     @Test
     void createBooks_whenDtoHasBothAuthorIdAndName_shouldThrowValidationException() {
-        // Arrange
+
         BookCreateDto dto1 = new BookCreateDto();
         dto1.setName("Invalid Book");
         dto1.setAuthorId(1);
-        dto1.setAuthorName("Invalid Author Name"); // Both ID and Name provided
+        dto1.setAuthorName("Invalid Author Name");
 
         List<BookCreateDto> dtos = List.of(dto1);
 
-        // Act & Assert
+
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> bookServiceImpl.createBooks(dtos) // Expression lambda
+                () -> bookServiceImpl.createBooks(dtos)
         );
         assertTrue(exception.getMessage().contains("Validation failed"));
         assertEquals(1, exception.getErrors().size());
@@ -678,29 +678,29 @@ class BookServiceImplTest {
 
     @Test
     void createBooks_whenAuthorIdNotFound_shouldThrowEntityNotFoundException() {
-        // Arrange
+
         BookCreateDto dto1 = new BookCreateDto();
         dto1.setName("Book With Missing Author");
-        dto1.setAuthorId(99); // Non-existent ID
+        dto1.setAuthorId(99);
         dto1.setCategoryIds(List.of(1));
 
         List<BookCreateDto> dtos = List.of(dto1);
 
-        when(authorRepository.findAllById(Set.of(99))).thenReturn(Collections.emptyList()); // Author not found
+        when(authorRepository.findAllById(Set.of(99))).thenReturn(Collections.emptyList());
         when(categoryRepository.findAllById(Set.of(1))).thenReturn(List.of(category1));
-        // Mock name lookups (will be called with empty sets)
-        when(authorRepository.findByAuthorNameIn(Collections.emptySet())).thenReturn(Collections.emptyList()); // Removed eq()
-        when(categoryRepository.findByCategoryNameIn(Collections.emptySet())).thenReturn(Collections.emptyList()); // Removed eq()
+
+        when(authorRepository.findByAuthorNameIn(Collections.emptySet())).thenReturn(Collections.emptyList());
+        when(categoryRepository.findByCategoryNameIn(Collections.emptySet())).thenReturn(Collections.emptyList());
 
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.createBooks(dtos) // Expression lambda
+                () -> bookServiceImpl.createBooks(dtos)
         );
         assertEquals("Автор не найден с ID: 99", exception.getMessage());
 
         verify(authorRepository, times(1)).findAllById(Set.of(99));
-        verify(categoryRepository, times(1)).findAllById(Set.of(1)); // Still fetches categories
+        verify(categoryRepository, times(1)).findAllById(Set.of(1));
         verify(bookRepository, never()).saveAll(anyList());
         verify(bookCache, never()).clear();
         verify(categoryCache, never()).clear();
@@ -708,24 +708,24 @@ class BookServiceImplTest {
 
     @Test
     void createBooks_whenCategoryIdNotFound_shouldThrowEntityNotFoundException() {
-        // Arrange
+
         BookCreateDto dto1 = new BookCreateDto();
         dto1.setName("Book With Missing Category");
         dto1.setAuthorId(1);
-        dto1.setCategoryIds(List.of(99)); // Non-existent ID
+        dto1.setCategoryIds(List.of(99));
 
         List<BookCreateDto> dtos = List.of(dto1);
 
         when(authorRepository.findAllById(Set.of(1))).thenReturn(List.of(author1));
-        when(categoryRepository.findAllById(Set.of(99))).thenReturn(Collections.emptyList()); // Category not found
-        // Mock name lookups (will be called with empty sets)
-        when(authorRepository.findByAuthorNameIn(Collections.emptySet())).thenReturn(Collections.emptyList()); // Removed eq()
-        when(categoryRepository.findByCategoryNameIn(Collections.emptySet())).thenReturn(Collections.emptyList()); // Removed eq()
+        when(categoryRepository.findAllById(Set.of(99))).thenReturn(Collections.emptyList());
+
+        when(authorRepository.findByAuthorNameIn(Collections.emptySet())).thenReturn(Collections.emptyList());
+        when(categoryRepository.findByCategoryNameIn(Collections.emptySet())).thenReturn(Collections.emptyList());
 
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.createBooks(dtos) // Expression lambda
+                () -> bookServiceImpl.createBooks(dtos)
         );
         assertEquals("Категория не найдена с ID: 99", exception.getMessage());
 
@@ -736,21 +736,21 @@ class BookServiceImplTest {
         verify(categoryCache, never()).clear();
     }
 
-    // --- New Tests for findBooksByCategory ---
+
 
     @Test
     void findBooksByCategory_whenCacheHit_shouldReturnBooksFromCache() {
-        // Arrange
+
         String categoryName = "Fiction";
         String cacheKey = "booksByCategory_" + categoryName;
         List<Book> expectedBooks = List.of(book1, book2);
         when(bookCache.containsKey(cacheKey)).thenReturn(true);
         when(bookCache.get(cacheKey)).thenReturn(expectedBooks);
 
-        // Act
+
         List<Book> result = bookServiceImpl.findBooksByCategory(categoryName);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(2, result.size());
         assertEquals(expectedBooks, result);
@@ -761,17 +761,17 @@ class BookServiceImplTest {
 
     @Test
     void findBooksByCategory_whenCacheMissAndFound_shouldReturnBooksFromRepoAndCache() {
-        // Arrange
+
         String categoryName = "Fiction";
         String cacheKey = "booksByCategory_" + categoryName;
         List<Book> expectedBooks = List.of(book1, book2);
         when(bookCache.containsKey(cacheKey)).thenReturn(false);
         when(bookRepository.findByCategoryName(categoryName)).thenReturn(expectedBooks);
 
-        // Act
+
         List<Book> result = bookServiceImpl.findBooksByCategory(categoryName);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(2, result.size());
         assertEquals(expectedBooks, result);
@@ -783,15 +783,15 @@ class BookServiceImplTest {
 
     @Test
     void findBooksByCategory_whenCacheMissAndNotFound_shouldThrowException() {
-        // Arrange
+
         String categoryName = "NonExistent";
         String cacheKey = "booksByCategory_" + categoryName;
         when(bookCache.containsKey(cacheKey)).thenReturn(false);
         when(bookRepository.findByCategoryName(categoryName)).thenReturn(Collections.emptyList());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.findBooksByCategory(categoryName) // Expression lambda
+                () -> bookServiceImpl.findBooksByCategory(categoryName)
         );
         assertEquals("Книги не найдены по категории: " + categoryName, exception.getMessage());
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -802,15 +802,15 @@ class BookServiceImplTest {
 
     @Test
     void findBooksByCategory_whenCacheHitButEmpty_shouldThrowException() {
-        // Arrange
+
         String categoryName = "EmptyCategory";
         String cacheKey = "booksByCategory_" + categoryName;
         when(bookCache.containsKey(cacheKey)).thenReturn(true);
-        when(bookCache.get(cacheKey)).thenReturn(Collections.emptyList()); // Cache has empty list
+        when(bookCache.get(cacheKey)).thenReturn(Collections.emptyList());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.findBooksByCategory(categoryName) // Expression lambda
+                () -> bookServiceImpl.findBooksByCategory(categoryName)
         );
         assertEquals("Книги не найдены по категории: " + categoryName, exception.getMessage());
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -819,21 +819,21 @@ class BookServiceImplTest {
     }
 
 
-    // --- New Tests for findBooksByAuthor ---
+
 
     @Test
     void findBooksByAuthor_whenCacheHit_shouldReturnBooksFromCache() {
-        // Arrange
+
         String authorName = "Test Author";
         String cacheKey = "booksByAuthor_" + authorName;
         List<Book> expectedBooks = List.of(book1, book2);
         when(bookCache.containsKey(cacheKey)).thenReturn(true);
         when(bookCache.get(cacheKey)).thenReturn(expectedBooks);
 
-        // Act
+
         List<Book> result = bookServiceImpl.findBooksByAuthor(authorName);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(2, result.size());
         assertEquals(expectedBooks, result);
@@ -844,17 +844,17 @@ class BookServiceImplTest {
 
     @Test
     void findBooksByAuthor_whenCacheMissAndFound_shouldReturnBooksFromRepoAndCache() {
-        // Arrange
+
         String authorName = "Test Author";
         String cacheKey = "booksByAuthor_" + authorName;
         List<Book> expectedBooks = List.of(book1, book2);
         when(bookCache.containsKey(cacheKey)).thenReturn(false);
         when(bookRepository.findByAuthorName(authorName)).thenReturn(expectedBooks);
 
-        // Act
+
         List<Book> result = bookServiceImpl.findBooksByAuthor(authorName);
 
-        // Assert
+
         assertNotNull(result);
         assertEquals(2, result.size());
         assertEquals(expectedBooks, result);
@@ -866,15 +866,15 @@ class BookServiceImplTest {
 
     @Test
     void findBooksByAuthor_whenCacheMissAndNotFound_shouldThrowException() {
-        // Arrange
+
         String authorName = "NonExistent Author";
         String cacheKey = "booksByAuthor_" + authorName;
         when(bookCache.containsKey(cacheKey)).thenReturn(false);
         when(bookRepository.findByAuthorName(authorName)).thenReturn(Collections.emptyList());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.findBooksByAuthor(authorName) // Expression lambda
+                () -> bookServiceImpl.findBooksByAuthor(authorName)
         );
         assertEquals("Книги не найдены по автору: " + authorName, exception.getMessage());
         verify(bookCache, times(1)).containsKey(cacheKey);
@@ -885,15 +885,15 @@ class BookServiceImplTest {
 
     @Test
     void findBooksByAuthor_whenCacheHitButEmpty_shouldThrowException() {
-        // Arrange
+
         String authorName = "AuthorWithNoBooks";
         String cacheKey = "booksByAuthor_" + authorName;
         when(bookCache.containsKey(cacheKey)).thenReturn(true);
-        when(bookCache.get(cacheKey)).thenReturn(Collections.emptyList()); // Cache has empty list
+        when(bookCache.get(cacheKey)).thenReturn(Collections.emptyList());
 
-        // Act & Assert
+
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> bookServiceImpl.findBooksByAuthor(authorName) // Expression lambda
+                () -> bookServiceImpl.findBooksByAuthor(authorName)
         );
         assertEquals("Книги не найдены по автору: " + authorName, exception.getMessage());
         verify(bookCache, times(1)).containsKey(cacheKey);
