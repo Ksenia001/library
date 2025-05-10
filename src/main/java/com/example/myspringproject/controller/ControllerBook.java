@@ -6,14 +6,15 @@ import com.example.myspringproject.dto.get.BookGetDto;
 import com.example.myspringproject.dto.update.BookUpdateDto;
 import com.example.myspringproject.model.Book;
 import com.example.myspringproject.service.BookService;
+import com.example.myspringproject.service.VisitTrackingService; // Добавляем импорт
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest; // Добавляем импорт
 import jakarta.validation.Valid;
 import java.util.List;
-import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,11 +29,21 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v2/books")
-@AllArgsConstructor
+// @AllArgsConstructor // Убираем, так как конструктор будет определен явно
 @Tag(name = "Books", description = "API for managing books")
 public class ControllerBook {
 
     private final BookService bookService;
+    private final VisitTrackingService visitTrackingService;
+
+    public ControllerBook(BookService bookService, VisitTrackingService visitTrackingService) {
+        this.bookService = bookService;
+        this.visitTrackingService = visitTrackingService;
+    }
+
+    private void track(HttpServletRequest request) {
+        visitTrackingService.trackVisit(request.getRequestURI());
+    }
 
     @Operation(summary = "Create many books", description = "Creates many books at once")
     @ApiResponses(value = {
@@ -41,9 +52,10 @@ public class ControllerBook {
     })
     @PostMapping("/bulk")
     public ResponseEntity<List<BookGetDto>> createBooks(
-            @Parameter(description = "Data to create books")
-            @Valid @RequestBody
-            BulkCreateDto<BookCreateDto> books) {
+          @Parameter(description = "Data to create books")
+          @Valid @RequestBody
+            BulkCreateDto<BookCreateDto> books, HttpServletRequest request) {
+        track(request);
         List<Book> createdBooks = bookService.createBooks(books.getDtos());
         List<BookGetDto> dtos = createdBooks.stream()
                 .map(BookGetDto::new)
@@ -58,7 +70,8 @@ public class ControllerBook {
         @ApiResponse(responseCode = "200", description = "Successful operation"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<List<BookGetDto>> findAllBooks() {
+    public ResponseEntity<List<BookGetDto>> findAllBooks(HttpServletRequest request) {
+        track(request);
         List<Book> books = bookService.findAllBooks();
         List<BookGetDto> dtos = books.stream()
                 .map(BookGetDto::new)
@@ -73,7 +86,10 @@ public class ControllerBook {
         @ApiResponse(responseCode = "400", description = "Invalid input")
     })
     @PostMapping
-    public ResponseEntity<BookGetDto> saveBook(@RequestBody @Valid BookCreateDto dto) {
+    public ResponseEntity<BookGetDto> saveBook(
+            @RequestBody @Valid BookCreateDto dto,
+            HttpServletRequest request) {
+        track(request);
         Book book = bookService.createBook(dto);
         return ResponseEntity.ok(new BookGetDto(book));
     }
@@ -85,7 +101,9 @@ public class ControllerBook {
     })
     @Parameter(description = "ID of the book to retrieve", name = "id")
     @GetMapping("/{id}")
-    public ResponseEntity<BookGetDto> findBookById(@PathVariable int id) {
+    public ResponseEntity<BookGetDto> findBookById(
+            @PathVariable int id, HttpServletRequest request) {
+        track(request);
         Book book = bookService.findBookById(id);
         return ResponseEntity.ok(new BookGetDto(book));
     }
@@ -99,8 +117,9 @@ public class ControllerBook {
     @Parameter(description = "ID of the book to update", name = "id")
     @PutMapping("/{id}")
     public ResponseEntity<BookGetDto> updateBook(
-            @PathVariable int id, @RequestBody @Valid BookUpdateDto dto
+            @PathVariable int id, @RequestBody @Valid BookUpdateDto dto, HttpServletRequest request
     ) {
+        track(request);
         Book updatedBook = bookService.updateBook(id, dto);
         return ResponseEntity.ok(new BookGetDto(updatedBook));
     }
@@ -112,7 +131,8 @@ public class ControllerBook {
     })
     @Parameter(description = "ID of the book to delete", name = "id")
     @DeleteMapping("{id}")
-    public ResponseEntity<Void> deleteBookById(@PathVariable int id) {
+    public ResponseEntity<Void> deleteBookById(@PathVariable int id, HttpServletRequest request) {
+        track(request);
         bookService.deleteBookById(id);
         return ResponseEntity.noContent().build();
     }
@@ -128,9 +148,10 @@ public class ControllerBook {
             name = "title", required = false)
     @GetMapping("/search")
     public ResponseEntity<List<BookGetDto>> searchBooks(
-            @RequestParam(value = "authorName", required = false) String authorName,
-            @RequestParam(value = "title", required = false) String title
+        @RequestParam(value = "authorName", required = false) String authorName,
+        @RequestParam(value = "title", required = false) String title, HttpServletRequest request
     ) {
+        track(request);
         List<Book> result = bookService.searchBooks(authorName, title);
         List<BookGetDto> dtos = result.stream().map(BookGetDto::new).toList();
         return ResponseEntity.ok(dtos);
@@ -145,8 +166,9 @@ public class ControllerBook {
     @Parameter(description = "Category name to filter books by", name = "category")
     @GetMapping("/by-category")
     public ResponseEntity<List<BookGetDto>> getBooksByCategory(
-            @RequestParam("category") String categoryName
+            @RequestParam("category") String categoryName, HttpServletRequest request
     ) {
+        track(request);
         List<Book> books = bookService.findBooksByCategory(categoryName);
         List<BookGetDto> dtos = books.stream()
                 .map(BookGetDto::new)
@@ -162,8 +184,9 @@ public class ControllerBook {
     @Parameter(description = "ID of the category to filter books by", name = "categoryId")
     @GetMapping("/by-category/{categoryId}")
     public ResponseEntity<List<BookGetDto>> getBooksByCategoryId(
-        @PathVariable int categoryId
+            @PathVariable int categoryId, HttpServletRequest request
     ) {
+        track(request);
         List<Book> books = bookService.findBooksByCategoryId(categoryId);
         List<BookGetDto> dtos = books.stream()
                 .map(BookGetDto::new)
@@ -179,8 +202,9 @@ public class ControllerBook {
     @Parameter(description = "Author name to filter books by", name = "author")
     @GetMapping("/by-author")
     public ResponseEntity<List<BookGetDto>> getBooksByAuthor(
-        @RequestParam("author") String authorName
+            @RequestParam("author") String authorName, HttpServletRequest request
     ) {
+        track(request);
         List<Book> books = bookService.findBooksByAuthor(authorName);
         List<BookGetDto> dtos = books.stream()
                 .map(BookGetDto::new)
@@ -196,8 +220,9 @@ public class ControllerBook {
     @Parameter(description = "ID of the author to filter books by", name = "authorId")
     @GetMapping("/by-author/{authorId}")
     public ResponseEntity<List<BookGetDto>> getBooksByAuthorId(
-            @PathVariable int authorId
+            @PathVariable int authorId, HttpServletRequest request
     ) {
+        track(request);
         List<Book> books = bookService.findBooksByAuthorId(authorId);
         List<BookGetDto> dtos = books.stream()
                 .map(BookGetDto::new)
