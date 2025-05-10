@@ -2,7 +2,6 @@ package com.example.myspringproject.controller;
 
 import com.example.myspringproject.exception.EntityNotFoundException;
 import com.example.myspringproject.model.LogTaskInfo;
-import com.example.myspringproject.model.LogTaskStatus;
 import com.example.myspringproject.service.LogGenerationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -99,16 +98,16 @@ public class LogController {
             description = "Downloads the generated log report file if completed.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200",
-                description = "Log report downloaded successfully"),
+                    description = "Log report downloaded successfully"),
         @ApiResponse(responseCode = "202",
-                description = "Log report generation still in progress or pending"),
+                    description = "Log report generation still in progress or pending"),
         @ApiResponse(responseCode = "404",
-                description = "Task not found or file not available"),
+                    description = "Task not found or file not available"),
         @ApiResponse(responseCode = "500",
-                description = "Log report generation failed or error accessing file")
+                    description = "Log report generation failed or error accessing file")
     })
     @GetMapping("/reports/{taskId}/download")
-    public ResponseEntity<?> downloadGeneratedLogReport(
+    public ResponseEntity<Object> downloadGeneratedLogReport(
             @Parameter(description = "ID of the log generation task")
             @PathVariable String taskId) {
         try {
@@ -129,8 +128,7 @@ public class LogController {
                         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                                 .body("Generated log file not found for task ID: " + taskId);
                     }
-                case PENDING:
-                case IN_PROGRESS:
+                case PENDING, IN_PROGRESS: // Объединенные кейсы
                     return ResponseEntity.status(HttpStatus.ACCEPTED)
                             .body("Log report generation is "
                                     + taskInfo.status().toString().toLowerCase()
@@ -145,12 +143,14 @@ public class LogController {
             }
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (MalformedURLException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error creating URL for the log file: " + e.getMessage());
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error accessing the log file: " + e.getMessage());
+            String errorMessage;
+            if (e instanceof MalformedURLException) {
+                errorMessage = "Error creating URL for the log file: " + e.getMessage();
+            } else {
+                errorMessage = "Error accessing the log file: " + e.getMessage();
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorMessage);
         }
     }
 }

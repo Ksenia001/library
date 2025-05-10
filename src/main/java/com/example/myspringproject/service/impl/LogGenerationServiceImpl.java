@@ -16,6 +16,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired; // Добавлен импорт
+import org.springframework.context.annotation.Lazy; // Добавлен импорт
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +29,12 @@ public class LogGenerationServiceImpl implements LogGenerationService {
     private static final String GENERATED_LOGS_DIR = "logs/generated_reports/";
 
     private final Map<String, LogTaskInfo> tasks = new ConcurrentHashMap<>();
+    private final LogGenerationService self;
+
+    @Autowired // Внедряем самого себя через @Lazy для корректной работы @Async
+    public LogGenerationServiceImpl(@Lazy LogGenerationService self) {
+        this.self = self;
+    }
 
     @Override
     public String initiateLogFileGeneration(LocalDate date) {
@@ -41,7 +49,8 @@ public class LogGenerationServiceImpl implements LogGenerationService {
                     "Could not create directory for generated logs: {}", GENERATED_LOGS_DIR, e);
         }
         tasks.put(taskId, new LogTaskInfo(taskId, LogTaskStatus.PENDING, null, null));
-        processLogGeneration(taskId, date);
+        // Вызываем асинхронный метод через self (прокси)
+        self.processLogGeneration(taskId, date);
         return taskId;
     }
 
@@ -63,7 +72,9 @@ public class LogGenerationServiceImpl implements LogGenerationService {
             }
 
             Path targetDir = Paths.get(GENERATED_LOGS_DIR);
-            Files.createDirectories(targetDir); // Ensure directory exists
+            if (!Files.exists(targetDir)) {
+                Files.createDirectories(targetDir);
+            }
 
             Path targetFilePath = targetDir.resolve(taskId + "_" + date.toString() + ".log");
             Files.copy(sourceLogPath,
@@ -99,6 +110,6 @@ public class LogGenerationServiceImpl implements LogGenerationService {
         if (taskInfo.status() == LogTaskStatus.COMPLETED && taskInfo.filePath() != null) {
             return Paths.get(taskInfo.filePath());
         }
-        return null; // Or throw a specific exception if not completed or no file path
+        return null;
     }
 }
