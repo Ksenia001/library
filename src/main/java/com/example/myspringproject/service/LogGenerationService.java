@@ -7,7 +7,10 @@ import java.util.concurrent.CompletableFuture;
 
 public interface LogGenerationService {
     String initiateLogFileGeneration(LocalDate date);
+
     CompletableFuture<Void> processLogGeneration(String taskId, LocalDate date);
+
     LogTaskInfo getTaskStatus(String taskId);
+
     Path getGeneratedLogFile(String taskId);
 }

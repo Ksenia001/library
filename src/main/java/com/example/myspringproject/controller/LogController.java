@@ -40,10 +40,11 @@ public class LogController {
         this.logGenerationService = logGenerationService;
     }
 
-    @Operation(summary = "Get logs by date", description = "Retrieves logs by date directly from the file system.")
+    @Operation(summary = "Get logs by date",
+            description = "Retrieves logs by date directly from the file system.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Logs retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Logs not found")
+        @ApiResponse(responseCode = "200", description = "Logs retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "Logs not found")
     })
     @GetMapping
     public ResponseEntity<Resource> getLogByDate(
@@ -53,21 +54,24 @@ public class LogController {
         String dateString = date.toString();
         Path logPath = Paths.get(LOG_FILE_PATH_BASE + "-" + dateString + ".log");
         if (!Files.exists(logPath)) {
-            throw new EntityNotFoundException("Log file was not found with date: " + dateString + " at path " + logPath.toAbsolutePath());
+            throw new EntityNotFoundException("Log file was not found with date: "
+                    + dateString + " at path " + logPath.toAbsolutePath());
         }
 
         Resource resource = new UrlResource(logPath.toUri());
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + "library-" + dateString + ".log" + "\"")
+                        "attachment; filename=\""
+                                + "library-" + dateString + ".log" + "\"")
                 .body(resource);
     }
 
-    @Operation(summary = "Initiate log report generation", description = "Asynchronously generates a log report for a specific date.")
+    @Operation(summary = "Initiate log report generation",
+            description = "Asynchronously generates a log report for a specific date.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "202", description = "Log report generation accepted"),
-            @ApiResponse(responseCode = "400", description = "Invalid date provided")
+        @ApiResponse(responseCode = "202", description = "Log report generation accepted"),
+        @ApiResponse(responseCode = "400", description = "Invalid date provided")
     })
     @PostMapping("/reports")
     public ResponseEntity<Map<String, String>> generateLogReport(
@@ -77,10 +81,11 @@ public class LogController {
         return ResponseEntity.accepted().body(Map.of("taskId", taskId));
     }
 
-    @Operation(summary = "Get log report generation status", description = "Retrieves the status of an asynchronous log report generation task.")
+    @Operation(summary = "Get log report generation status",
+            description = "Retrieves the status of an asynchronous log report generation task.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Status retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Task not found")
+        @ApiResponse(responseCode = "200", description = "Status retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "Task not found")
     })
     @GetMapping("/reports/{taskId}/status")
     public ResponseEntity<LogTaskInfo> getLogReportStatus(
@@ -90,12 +95,17 @@ public class LogController {
         return ResponseEntity.ok(taskInfo);
     }
 
-    @Operation(summary = "Download generated log report", description = "Downloads the generated log report file if completed.")
+    @Operation(summary = "Download generated log report",
+            description = "Downloads the generated log report file if completed.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Log report downloaded successfully"),
-            @ApiResponse(responseCode = "202", description = "Log report generation still in progress or pending"),
-            @ApiResponse(responseCode = "404", description = "Task not found or file not available"),
-            @ApiResponse(responseCode = "500", description = "Log report generation failed or error accessing file")
+        @ApiResponse(responseCode = "200",
+                description = "Log report downloaded successfully"),
+        @ApiResponse(responseCode = "202",
+                description = "Log report generation still in progress or pending"),
+        @ApiResponse(responseCode = "404",
+                description = "Task not found or file not available"),
+        @ApiResponse(responseCode = "500",
+                description = "Log report generation failed or error accessing file")
     })
     @GetMapping("/reports/{taskId}/download")
     public ResponseEntity<?> downloadGeneratedLogReport(
@@ -112,7 +122,8 @@ public class LogController {
                         return ResponseEntity.ok()
                                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                                        "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
+                                        "attachment; filename=\""
+                                                + filePath.getFileName().toString() + "\"")
                                 .body(resource);
                     } else {
                         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -121,10 +132,13 @@ public class LogController {
                 case PENDING:
                 case IN_PROGRESS:
                     return ResponseEntity.status(HttpStatus.ACCEPTED)
-                            .body("Log report generation is " + taskInfo.status().toString().toLowerCase() + " for task ID: " + taskId);
+                            .body("Log report generation is "
+                                    + taskInfo.status().toString().toLowerCase()
+                                    + " for task ID: " + taskId);
                 case FAILED:
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Log report generation failed for task ID: " + taskId + ". Error: " + taskInfo.errorMessage());
+                            .body("Log report generation failed for task ID: "
+                                    + taskId + ". Error: " + taskInfo.errorMessage());
                 default:
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .body("Unknown status for task ID: " + taskId);
@@ -132,9 +146,11 @@ public class LogController {
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (MalformedURLException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating URL for the log file: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error creating URL for the log file: " + e.getMessage());
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error accessing the log file: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error accessing the log file: " + e.getMessage());
         }
     }
 }

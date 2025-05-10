@@ -10,10 +10,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -37,12 +37,11 @@ public class LogGenerationServiceImpl implements LogGenerationService {
                 Files.createDirectories(targetDir);
             }
         } catch (IOException e) {
-            logger.error("Could not create directory for generated logs: {}", GENERATED_LOGS_DIR, e);
-            // Handle directory creation failure, perhaps throw an exception
-            // For now, we'll let it proceed and fail during file copy if dir doesn't exist
+            logger.error(
+                    "Could not create directory for generated logs: {}", GENERATED_LOGS_DIR, e);
         }
         tasks.put(taskId, new LogTaskInfo(taskId, LogTaskStatus.PENDING, null, null));
-        processLogGeneration(taskId, date); // Async call
+        processLogGeneration(taskId, date);
         return taskId;
     }
 
@@ -55,9 +54,11 @@ public class LogGenerationServiceImpl implements LogGenerationService {
 
             Path sourceLogPath = Paths.get(String.format(SOURCE_LOG_FILE_PATTERN, date.toString()));
             if (!Files.exists(sourceLogPath)) {
-                String errorMessage = "Source log file not found for date: " + date + " at path " + sourceLogPath.toAbsolutePath();
+                String errorMessage = "Source log file not found for date: "
+                        + date + " at path " + sourceLogPath.toAbsolutePath();
                 logger.warn(errorMessage);
-                tasks.computeIfPresent(taskId, (k, v) -> v.withStatus(LogTaskStatus.FAILED).withErrorMessage(errorMessage));
+                tasks.computeIfPresent(taskId, (k, v)
+                        -> v.withStatus(LogTaskStatus.FAILED).withErrorMessage(errorMessage));
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -65,14 +66,20 @@ public class LogGenerationServiceImpl implements LogGenerationService {
             Files.createDirectories(targetDir); // Ensure directory exists
 
             Path targetFilePath = targetDir.resolve(taskId + "_" + date.toString() + ".log");
-            Files.copy(sourceLogPath, targetFilePath, StandardCopyOption.REPLACE_EXISTING);
-            logger.info("Log file generated successfully for task ID: {}. Path: {}", taskId, targetFilePath);
-            tasks.computeIfPresent(taskId, (k, v) -> v.withStatus(LogTaskStatus.COMPLETED).withFilePath(targetFilePath.toString()));
+            Files.copy(sourceLogPath,
+                    targetFilePath, StandardCopyOption.REPLACE_EXISTING);
+            logger.info("Log file generated successfully for task ID: {}. Path: {}",
+                    taskId, targetFilePath);
+            tasks.computeIfPresent(taskId, (k, v)
+                    -> v.withStatus(LogTaskStatus.COMPLETED)
+                    .withFilePath(targetFilePath.toString()));
 
         } catch (IOException e) {
-            String errorMessage = "Error generating log file for task " + taskId + ": " + e.getMessage();
+            String errorMessage = "Error generating log file for task "
+                    + taskId + ": " + e.getMessage();
             logger.error(errorMessage, e);
-            tasks.computeIfPresent(taskId, (k, v) -> v.withStatus(LogTaskStatus.FAILED).withErrorMessage(errorMessage));
+            tasks.computeIfPresent(taskId, (k, v)
+                    -> v.withStatus(LogTaskStatus.FAILED).withErrorMessage(errorMessage));
         }
         return CompletableFuture.completedFuture(null);
     }
