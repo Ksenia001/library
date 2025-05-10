@@ -35,6 +35,7 @@ class AuthorServiceImplTest {
 
     @Mock
     private AuthorRepository authorRepository;
+
     @Mock
     private AuthorCache authorCache;
 
