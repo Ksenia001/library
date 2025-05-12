@@ -16,8 +16,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired; // Добавлен импорт
-import org.springframework.context.annotation.Lazy; // Добавлен импорт
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -31,7 +31,7 @@ public class LogGenerationServiceImpl implements LogGenerationService {
     private final Map<String, LogTaskInfo> tasks = new ConcurrentHashMap<>();
     private final LogGenerationService self;
 
-    @Autowired // Внедряем самого себя через @Lazy для корректной работы @Async
+    @Autowired
     public LogGenerationServiceImpl(@Lazy LogGenerationService self) {
         this.self = self;
     }
@@ -49,7 +49,7 @@ public class LogGenerationServiceImpl implements LogGenerationService {
                     "Could not create directory for generated logs: {}", GENERATED_LOGS_DIR, e);
         }
         tasks.put(taskId, new LogTaskInfo(taskId, LogTaskStatus.PENDING, null, null));
-        // Вызываем асинхронный метод через self (прокси)
+
         self.processLogGeneration(taskId, date);
         return taskId;
     }
@@ -106,7 +106,7 @@ public class LogGenerationServiceImpl implements LogGenerationService {
 
     @Override
     public Path getGeneratedLogFile(String taskId) {
-        LogTaskInfo taskInfo = getTaskStatus(taskId); // This will throw if not found
+        LogTaskInfo taskInfo = getTaskStatus(taskId);
         if (taskInfo.status() == LogTaskStatus.COMPLETED && taskInfo.filePath() != null) {
             return Paths.get(taskInfo.filePath());
         }

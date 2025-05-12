@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream; // Added import
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -42,7 +42,6 @@ class AuthorServiceImplTest {
     @InjectMocks
     private AuthorServiceImpl authorServiceImpl;
 
-    // Instance variables for general use in non-parameterized tests
     private Author author1;
     private Author author2;
 
