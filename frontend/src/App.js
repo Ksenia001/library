@@ -18,7 +18,7 @@ const App = () => {
 
   const [allAuthorsForSelect, setAllAuthorsForSelect] = useState([]);
   const [allCategoriesForSelect, setAllCategoriesForSelect] = useState([]);
-  const [allBooksForSelect, setAllBooksForSelect] = useState([]); // Для выбора книг в форме категорий
+  const [allBooksForSelect, setAllBooksForSelect] = useState([]);
 
   const [loading, setLoading] = useState({ books: true, authors: true, categories: true, selectData: true });
   const [error, setError] = useState({ books: null, authors: null, categories: null, selectData: null });
@@ -45,7 +45,7 @@ const App = () => {
       if (showSuccess) message.success(`${entityName.charAt(0).toUpperCase() + entityName.slice(1)} loaded successfully!`);
     } catch (err) {
       setError(prev => ({ ...prev, [entityName]: `Failed to fetch ${entityName}: ${err.message}` }));
-      setData([]); // Очищаем данные при ошибке, чтобы не показывать старые
+      setData([]);
       message.error(`Failed to load ${entityName}: ${err.response?.data?.message || err.response?.data || err.message}`);
     } finally {
       setLoading(prev => ({ ...prev, [entityName]: false }));
@@ -64,11 +64,11 @@ const App = () => {
       const [authorsRes, categoriesRes, booksRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/authors`),
         axios.get(`${API_BASE_URL}/categories`),
-        axios.get(`${API_BASE_URL}/books`) // Загружаем книги для формы категорий
+        axios.get(`${API_BASE_URL}/books`)
       ]);
       setAllAuthorsForSelect(authorsRes.data.map(a => ({ id: a.id, name: a.authorName })));
       setAllCategoriesForSelect(categoriesRes.data.map(c => ({ id: c.id, name: c.name })));
-      setAllBooksForSelect(booksRes.data.map(b => ({ id: b.id, name: b.bookName, authorName: b.authorName })));
+      setAllBooksForSelect(booksRes.data.map(b => ({ id: b.id, name: b.bookName, authorName: b.authorName, categories: b.categories })));
       setError(prev => ({ ...prev, selectData: null }));
     } catch (err) {
       message.error(`Failed to load data for forms: ${err.message}`);
@@ -95,11 +95,16 @@ const App = () => {
               : []
         });
       } else if (form === authorForm) {
-        form.setFieldsValue({ name: record.authorName });
+        form.setFieldsValue({
+          name: record.authorName,
+          bookIds: record.books
+              ? allBooksForSelect.filter(b => record.books.includes(b.name)).map(b => b.id)
+              : []
+        });
       } else if (form === categoryForm) {
         form.setFieldsValue({
           name: record.name,
-          bookIds: record.books // CategoryGetDto содержит books как массив строк (имен книг)
+          bookIds: record.books
               ? allBooksForSelect.filter(b => record.books.includes(b.name)).map(b => b.id)
               : []
         });
@@ -119,8 +124,8 @@ const App = () => {
     try {
       await axios.delete(`${API_BASE_URL}/${endpoint}/${id}`);
       message.success(`${entityName} deleted successfully!`);
-      fetchAllDataForTables(); // Обновляем все таблицы
-      fetchSelectData();    // Обновляем данные для селектов
+      fetchAllDataForTables();
+      fetchSelectData();
     } catch (err) {
       message.error(`Failed to delete ${entityName}: ${err.response?.data || err.message}`);
     }
@@ -129,11 +134,9 @@ const App = () => {
   // --- Логика для Книг ---
   const handleBookFormFinish = async (values) => {
     const payload = {
-      // Поля для BookCreateDto
       name: values.name,
       authorId: values.authorId,
       categoryIds: values.categoryIds,
-      // Поля для BookUpdateDto (некоторые дублируются, бэкенд разберется)
       bookName: values.name,
       categoriesIds: values.categoryIds
     };
@@ -163,7 +166,7 @@ const App = () => {
   };
 
   const bookColumns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 },
+    // { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 }, // УДАЛЕНО
     { title: 'Book Name', dataIndex: 'bookName', key: 'bookName', sorter: (a, b) => a.bookName.localeCompare(b.bookName) },
     { title: 'Author', dataIndex: 'authorName', key: 'authorName', sorter: (a, b) => (a.authorName || "").localeCompare(b.authorName || "") },
     {
@@ -186,8 +189,9 @@ const App = () => {
   // --- Логика для Авторов ---
   const handleAuthorFormFinish = async (values) => {
     const payload = {
-      name: values.name, // AuthorCreateDto
-      authorName: values.name // AuthorUpdateDto
+      name: values.name,
+      authorName: values.name,
+      bookIds: values.bookIds || []
     };
     try {
       if (editingAuthor) {
@@ -214,7 +218,7 @@ const App = () => {
   };
 
   const authorColumns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 },
+    // { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 }, // УДАЛЕНО
     { title: 'Author Name', dataIndex: 'authorName', key: 'authorName', sorter: (a, b) => a.authorName.localeCompare(b.authorName) },
     {
       title: 'Books', dataIndex: 'books', key: 'books',
@@ -264,7 +268,7 @@ const App = () => {
   };
 
   const categoryColumns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 },
+    // { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 }, // УДАЛЕНО
     { title: 'Category Name', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
     {
       title: 'Books', dataIndex: 'books', key: 'books',
@@ -324,7 +328,7 @@ const App = () => {
             open={isBookModalVisible}
             onCancel={() => handleModalCancel(setIsBookModalVisible, bookForm)}
             onOk={() => bookForm.submit()}
-            destroyOnClose // Сбрасывать состояние формы при закрытии
+            destroyOnClose
             confirmLoading={loading.books || loading.selectData}
         >
           <Form form={bookForm} layout="vertical" name="bookForm" onFinish={handleBookFormFinish} preserve={false}>
@@ -351,11 +355,16 @@ const App = () => {
             onCancel={() => handleModalCancel(setIsAuthorModalVisible, authorForm)}
             onOk={() => authorForm.submit()}
             destroyOnClose
-            confirmLoading={loading.authors}
+            confirmLoading={loading.authors || loading.selectData}
         >
           <Form form={authorForm} layout="vertical" name="authorForm" onFinish={handleAuthorFormFinish} preserve={false}>
             <Form.Item name="name" label="Author Name" rules={[{ required: true, message: 'Please input the author name!' }]}>
               <Input />
+            </Form.Item>
+            <Form.Item name="bookIds" label="Books by this Author">
+              <Select mode="multiple" placeholder="Select books" loading={loading.selectData || loading.books} allowClear>
+                {allBooksForSelect.map(book => <Option key={book.id} value={book.id}>{book.name}</Option>)}
+              </Select>
             </Form.Item>
           </Form>
         </Modal>
