@@ -18,9 +18,7 @@ const App = () => {
 
   const [allAuthorsForSelect, setAllAuthorsForSelect] = useState([]);
   const [allCategoriesForSelect, setAllCategoriesForSelect] = useState([]);
-  // Для формы категорий, если нужно будет выбирать книги
-  // const [allBooksForSelect, setAllBooksForSelect] = useState([]);
-
+  const [allBooksForSelect, setAllBooksForSelect] = useState([]); // Для выбора книг в форме категорий
 
   const [loading, setLoading] = useState({ books: true, authors: true, categories: true, selectData: true });
   const [error, setError] = useState({ books: null, authors: null, categories: null, selectData: null });
@@ -47,25 +45,30 @@ const App = () => {
       if (showSuccess) message.success(`${entityName.charAt(0).toUpperCase() + entityName.slice(1)} loaded successfully!`);
     } catch (err) {
       setError(prev => ({ ...prev, [entityName]: `Failed to fetch ${entityName}: ${err.message}` }));
-      setData([]);
-      message.error(`Failed to load ${entityName}: ${err.response?.data?.message || err.message}`);
+      setData([]); // Очищаем данные при ошибке, чтобы не показывать старые
+      message.error(`Failed to load ${entityName}: ${err.response?.data?.message || err.response?.data || err.message}`);
     } finally {
       setLoading(prev => ({ ...prev, [entityName]: false }));
     }
   };
 
+  const fetchAllDataForTables = () => {
+    fetchData('books', setBooks, 'books');
+    fetchData('authors', setAuthors, 'authors');
+    fetchData('categories', setCategories, 'categories');
+  };
+
   const fetchSelectData = async () => {
     setLoading(prev => ({ ...prev, selectData: true }));
     try {
-      const [authorsRes, categoriesRes] = await Promise.all([
+      const [authorsRes, categoriesRes, booksRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/authors`),
         axios.get(`${API_BASE_URL}/categories`),
-        // Если нужно выбирать книги для категорий:
-        // axios.get(`${API_BASE_URL}/books`)
+        axios.get(`${API_BASE_URL}/books`) // Загружаем книги для формы категорий
       ]);
       setAllAuthorsForSelect(authorsRes.data.map(a => ({ id: a.id, name: a.authorName })));
       setAllCategoriesForSelect(categoriesRes.data.map(c => ({ id: c.id, name: c.name })));
-      // setAllBooksForSelect(booksRes.data.map(b => ({ id: b.id, name: b.bookName })));
+      setAllBooksForSelect(booksRes.data.map(b => ({ id: b.id, name: b.bookName, authorName: b.authorName })));
       setError(prev => ({ ...prev, selectData: null }));
     } catch (err) {
       message.error(`Failed to load data for forms: ${err.message}`);
@@ -75,11 +78,8 @@ const App = () => {
     }
   };
 
-
   useEffect(() => {
-    fetchData('books', setBooks, 'books');
-    fetchData('authors', setAuthors, 'authors');
-    fetchData('categories', setCategories, 'categories');
+    fetchAllDataForTables();
     fetchSelectData();
   }, []);
 
@@ -99,7 +99,9 @@ const App = () => {
       } else if (form === categoryForm) {
         form.setFieldsValue({
           name: record.name,
-          // bookIds: record.books ? allBooksForSelect.filter(b => record.books.includes(b.name)).map(b => b.id) : []
+          bookIds: record.books // CategoryGetDto содержит books как массив строк (имен книг)
+              ? allBooksForSelect.filter(b => record.books.includes(b.name)).map(b => b.id)
+              : []
         });
       }
     } else {
@@ -113,26 +115,27 @@ const App = () => {
     form.resetFields();
   };
 
-  const handleDelete = async (id, endpoint, entityName, refreshFunc) => {
+  const handleDelete = async (id, endpoint, entityName) => {
     try {
       await axios.delete(`${API_BASE_URL}/${endpoint}/${id}`);
       message.success(`${entityName} deleted successfully!`);
-      refreshFunc();
+      fetchAllDataForTables(); // Обновляем все таблицы
+      fetchSelectData();    // Обновляем данные для селектов
     } catch (err) {
       message.error(`Failed to delete ${entityName}: ${err.response?.data || err.message}`);
     }
   };
 
   // --- Логика для Книг ---
-  const refreshBooks = () => fetchData('books', setBooks, 'books');
-
   const handleBookFormFinish = async (values) => {
     const payload = {
-      name: values.name, // BookCreateDto
-      bookName: values.name, // BookUpdateDto
+      // Поля для BookCreateDto
+      name: values.name,
       authorId: values.authorId,
-      categoryIds: values.categoryIds, // BookCreateDto
-      categoriesIds: values.categoryIds // BookUpdateDto
+      categoryIds: values.categoryIds,
+      // Поля для BookUpdateDto (некоторые дублируются, бэкенд разберется)
+      bookName: values.name,
+      categoriesIds: values.categoryIds
     };
 
     try {
@@ -145,10 +148,16 @@ const App = () => {
       }
       setIsBookModalVisible(false);
       bookForm.resetFields();
-      refreshBooks();
-      fetchSelectData(); // Обновить данные для селектов, если книга повлияла на категории/авторов (маловероятно для книги)
+      fetchAllDataForTables();
+      fetchSelectData();
     } catch (err) {
-      const errorMsg = err.response?.data?.message || (err.response?.data && typeof err.response.data === 'object' ? JSON.stringify(err.response.data) : err.message);
+      const errorData = err.response?.data;
+      let errorMsg = err.message;
+      if (typeof errorData === 'string') {
+        errorMsg = errorData;
+      } else if (typeof errorData === 'object' && errorData !== null) {
+        errorMsg = Object.values(errorData).join(', ');
+      }
       message.error(`Failed to save book: ${errorMsg}`);
     }
   };
@@ -166,7 +175,7 @@ const App = () => {
       render: (_, record) => (
           <Space>
             <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsBookModalVisible, bookForm, record, setEditingBook)} type="primary" />
-            <Popconfirm title="Are you sure to delete this book?" onConfirm={() => handleDelete(record.id, 'books', 'Book', refreshBooks)} okText="Yes" cancelText="No">
+            <Popconfirm title="Are you sure to delete this book?" onConfirm={() => handleDelete(record.id, 'books', 'Book')} okText="Yes" cancelText="No">
               <Button icon={<DeleteOutlined />} danger />
             </Popconfirm>
           </Space>
@@ -175,8 +184,6 @@ const App = () => {
   ];
 
   // --- Логика для Авторов ---
-  const refreshAuthors = () => fetchData('authors', setAuthors, 'authors');
-
   const handleAuthorFormFinish = async (values) => {
     const payload = {
       name: values.name, // AuthorCreateDto
@@ -192,10 +199,16 @@ const App = () => {
       }
       setIsAuthorModalVisible(false);
       authorForm.resetFields();
-      refreshAuthors();
-      fetchSelectData(); // Обновить авторов в селектах для книг
+      fetchAllDataForTables();
+      fetchSelectData();
     } catch (err) {
-      const errorMsg = err.response?.data?.message || (err.response?.data && typeof err.response.data === 'object' ? JSON.stringify(err.response.data) : err.message);
+      const errorData = err.response?.data;
+      let errorMsg = err.message;
+      if (typeof errorData === 'string') {
+        errorMsg = errorData;
+      } else if (typeof errorData === 'object' && errorData !== null) {
+        errorMsg = Object.values(errorData).join(', ');
+      }
       message.error(`Failed to save author: ${errorMsg}`);
     }
   };
@@ -212,7 +225,7 @@ const App = () => {
       render: (_, record) => (
           <Space>
             <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsAuthorModalVisible, authorForm, record, setEditingAuthor)} type="primary" />
-            <Popconfirm title="Are you sure to delete this author?" onConfirm={() => handleDelete(record.id, 'authors', 'Author', refreshAuthors)} okText="Yes" cancelText="No">
+            <Popconfirm title="Are you sure to delete this author?" onConfirm={() => handleDelete(record.id, 'authors', 'Author')} okText="Yes" cancelText="No">
               <Button icon={<DeleteOutlined />} danger />
             </Popconfirm>
           </Space>
@@ -221,12 +234,10 @@ const App = () => {
   ];
 
   // --- Логика для Категорий ---
-  const refreshCategories = () => fetchData('categories', setCategories, 'categories');
-
   const handleCategoryFormFinish = async (values) => {
     const payload = {
       name: values.name,
-      bookIds: values.bookIds || [] // Убедимся, что bookIds есть, даже если пустой
+      bookIds: values.bookIds || []
     };
     try {
       if (editingCategory) {
@@ -238,11 +249,16 @@ const App = () => {
       }
       setIsCategoryModalVisible(false);
       categoryForm.resetFields();
-      refreshCategories();
-      fetchSelectData(); // Обновить категории в селектах для книг
-      refreshBooks(); // Книги могли измениться из-за ассоциаций с категориями
+      fetchAllDataForTables();
+      fetchSelectData();
     } catch (err) {
-      const errorMsg = err.response?.data?.message || (err.response?.data && typeof err.response.data === 'object' ? JSON.stringify(err.response.data) : err.message);
+      const errorData = err.response?.data;
+      let errorMsg = err.message;
+      if (typeof errorData === 'string') {
+        errorMsg = errorData;
+      } else if (typeof errorData === 'object' && errorData !== null) {
+        errorMsg = Object.values(errorData).join(', ');
+      }
       message.error(`Failed to save category: ${errorMsg}`);
     }
   };
@@ -259,7 +275,7 @@ const App = () => {
       render: (_, record) => (
           <Space>
             <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsCategoryModalVisible, categoryForm, record, setEditingCategory)} type="primary" />
-            <Popconfirm title="Are you sure to delete this category?" onConfirm={() => handleDelete(record.id, 'categories', 'Category', refreshCategories)} okText="Yes" cancelText="No">
+            <Popconfirm title="Are you sure to delete this category?" onConfirm={() => handleDelete(record.id, 'categories', 'Category')} okText="Yes" cancelText="No">
               <Button icon={<DeleteOutlined />} danger />
             </Popconfirm>
           </Space>
@@ -308,9 +324,10 @@ const App = () => {
             open={isBookModalVisible}
             onCancel={() => handleModalCancel(setIsBookModalVisible, bookForm)}
             onOk={() => bookForm.submit()}
-            confirmLoading={loading.books} // Можно добавить отдельный флаг для submit
+            destroyOnClose // Сбрасывать состояние формы при закрытии
+            confirmLoading={loading.books || loading.selectData}
         >
-          <Form form={bookForm} layout="vertical" name="bookForm" onFinish={handleBookFormFinish}>
+          <Form form={bookForm} layout="vertical" name="bookForm" onFinish={handleBookFormFinish} preserve={false}>
             <Form.Item name="name" label="Book Name" rules={[{ required: true, message: 'Please input the book name!' }]}>
               <Input />
             </Form.Item>
@@ -333,9 +350,10 @@ const App = () => {
             open={isAuthorModalVisible}
             onCancel={() => handleModalCancel(setIsAuthorModalVisible, authorForm)}
             onOk={() => authorForm.submit()}
+            destroyOnClose
             confirmLoading={loading.authors}
         >
-          <Form form={authorForm} layout="vertical" name="authorForm" onFinish={handleAuthorFormFinish}>
+          <Form form={authorForm} layout="vertical" name="authorForm" onFinish={handleAuthorFormFinish} preserve={false}>
             <Form.Item name="name" label="Author Name" rules={[{ required: true, message: 'Please input the author name!' }]}>
               <Input />
             </Form.Item>
@@ -348,20 +366,18 @@ const App = () => {
             open={isCategoryModalVisible}
             onCancel={() => handleModalCancel(setIsCategoryModalVisible, categoryForm)}
             onOk={() => categoryForm.submit()}
-            confirmLoading={loading.categories}
+            destroyOnClose
+            confirmLoading={loading.categories || loading.selectData}
         >
-          <Form form={categoryForm} layout="vertical" name="categoryForm" onFinish={handleCategoryFormFinish}>
+          <Form form={categoryForm} layout="vertical" name="categoryForm" onFinish={handleCategoryFormFinish} preserve={false}>
             <Form.Item name="name" label="Category Name" rules={[{ required: true, message: 'Please input the category name!' }]}>
               <Input />
             </Form.Item>
-            {/*
-          // Если нужно добавлять книги к категории при ее создании/редактировании:
-          <Form.Item name="bookIds" label="Books in this Category">
-            <Select mode="multiple" placeholder="Select books" loading={loading.selectData || loading.books} allowClear>
-              {allBooksForSelect.map(book => <Option key={book.id} value={book.id}>{book.name}</Option>)}
-            </Select>
-          </Form.Item>
-          */}
+            <Form.Item name="bookIds" label="Books in this Category">
+              <Select mode="multiple" placeholder="Select books" loading={loading.selectData || loading.books} allowClear>
+                {allBooksForSelect.map(book => <Option key={book.id} value={book.id}>{book.name} {book.authorName ? `(${book.authorName})` : ''}</Option>)}
+              </Select>
+            </Form.Item>
           </Form>
         </Modal>
       </Layout>
