@@ -9,7 +9,7 @@ const { Header, Content, Footer } = Layout;
 const { Title } = Typography;
 const { Option } = Select;
 
-const API_BASE_URL = 'http://localhost:8080/api/v2';
+const API_BASE_URL = 'http://localhost:8080/api/v2'; // Для локальной разработки
 
 const App = () => {
   const [books, setBooks] = useState([]);
@@ -26,16 +26,18 @@ const App = () => {
   const [isBookModalVisible, setIsBookModalVisible] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
   const [bookForm] = Form.useForm();
+  const [isSubmittingBook, setIsSubmittingBook] = useState(false);
 
   const [isAuthorModalVisible, setIsAuthorModalVisible] = useState(false);
   const [editingAuthor, setEditingAuthor] = useState(null);
   const [authorForm] = Form.useForm();
+  const [isSubmittingAuthor, setIsSubmittingAuthor] = useState(false);
 
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm] = Form.useForm();
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
 
-  // --- Общие функции ---
   const fetchData = async (endpoint, setData, entityName, showSuccess = false) => {
     try {
       setLoading(prev => ({ ...prev, [entityName]: true }));
@@ -87,26 +89,26 @@ const App = () => {
     recordSetter(record);
     if (record) {
       if (form === bookForm) {
+        const author = allAuthorsForSelect.find(a => a.name === record.authorName);
+        const categoryIds = record.categories
+            ? allCategoriesForSelect
+                .filter(c => record.categories.includes(c.name))
+                .map(c => c.id)
+            : [];
         form.setFieldsValue({
           name: record.bookName,
-          authorId: allAuthorsForSelect.find(a => a.name === record.authorName)?.id,
-          categoryIds: record.categories
-              ? allCategoriesForSelect.filter(c => record.categories.includes(c.name)).map(c => c.id)
-              : []
+          authorId: author ? author.id : undefined,
+          categoryIds: categoryIds,
         });
       } else if (form === authorForm) {
-        form.setFieldsValue({
-          name: record.authorName,
-          bookIds: record.books
-              ? allBooksForSelect.filter(b => record.books.includes(b.name)).map(b => b.id)
-              : []
-        });
+        form.setFieldsValue({ name: record.authorName });
       } else if (form === categoryForm) {
+        const categoryBookIds = record.books
+            ? allBooksForSelect.filter(b => record.books.includes(b.name)).map(b => b.id)
+            : [];
         form.setFieldsValue({
           name: record.name,
-          bookIds: record.books
-              ? allBooksForSelect.filter(b => record.books.includes(b.name)).map(b => b.id)
-              : []
+          bookIds: categoryBookIds
         });
       }
     } else {
@@ -118,6 +120,9 @@ const App = () => {
   const handleModalCancel = (setter, form) => {
     setter(false);
     form.resetFields();
+    if (setter === setIsBookModalVisible) setEditingBook(null);
+    if (setter === setIsAuthorModalVisible) setEditingAuthor(null);
+    if (setter === setIsCategoryModalVisible) setEditingCategory(null);
   };
 
   const handleDelete = async (id, endpoint, entityName) => {
@@ -131,18 +136,18 @@ const App = () => {
     }
   };
 
-  // --- Логика для Книг ---
   const handleBookFormFinish = async (values) => {
+    setIsSubmittingBook(true);
     const payload = {
-      name: values.name,
       authorId: values.authorId,
-      categoryIds: values.categoryIds,
+      name: values.name,
+      categoryIds: values.categoryIds || [],
       bookName: values.name,
-      categoriesIds: values.categoryIds
+      categoriesIds: values.categoryIds || []
     };
 
     try {
-      if (editingBook) {
+      if (editingBook && editingBook.id) {
         await axios.put(`${API_BASE_URL}/books/${editingBook.id}`, payload);
         message.success('Book updated successfully!');
       } else {
@@ -151,22 +156,25 @@ const App = () => {
       }
       setIsBookModalVisible(false);
       bookForm.resetFields();
+      setEditingBook(null);
       fetchAllDataForTables();
       fetchSelectData();
     } catch (err) {
-      const errorData = err.response?.data;
-      let errorMsg = err.message;
-      if (typeof errorData === 'string') {
-        errorMsg = errorData;
-      } else if (typeof errorData === 'object' && errorData !== null) {
-        errorMsg = Object.values(errorData).join(', ');
-      }
-      message.error(`Failed to save book: ${errorMsg}`);
+      let errorMsg = "An unexpected error occurred while saving the book.";
+      if (err.response) {
+        if (typeof err.response.data === 'string' && err.response.data) errorMsg = err.response.data;
+        else if (typeof err.response.data === 'object' && err.response.data !== null) {
+          const validationErrors = Object.entries(err.response.data).map(([key, value]) => `${key}: ${value}`);
+          errorMsg = validationErrors.length > 0 ? validationErrors.join('; ') : JSON.stringify(err.response.data);
+        } else if (err.response.statusText) errorMsg = `Error: ${err.response.status} - ${err.response.statusText}`;
+      } else if (err.message) errorMsg = err.message;
+      message.error(`Failed to save book: ${errorMsg}`, 7);
+    } finally {
+      setIsSubmittingBook(false);
     }
   };
 
   const bookColumns = [
-    // { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 }, // УДАЛЕНО
     { title: 'Book Name', dataIndex: 'bookName', key: 'bookName', sorter: (a, b) => a.bookName.localeCompare(b.bookName) },
     { title: 'Author', dataIndex: 'authorName', key: 'authorName', sorter: (a, b) => (a.authorName || "").localeCompare(b.authorName || "") },
     {
@@ -186,15 +194,14 @@ const App = () => {
     },
   ];
 
-  // --- Логика для Авторов ---
   const handleAuthorFormFinish = async (values) => {
+    setIsSubmittingAuthor(true);
     const payload = {
       name: values.name,
       authorName: values.name,
-      bookIds: values.bookIds || []
     };
     try {
-      if (editingAuthor) {
+      if (editingAuthor && editingAuthor.id) {
         await axios.put(`${API_BASE_URL}/authors/${editingAuthor.id}`, payload);
         message.success('Author updated successfully!');
       } else {
@@ -203,22 +210,23 @@ const App = () => {
       }
       setIsAuthorModalVisible(false);
       authorForm.resetFields();
+      setEditingAuthor(null);
       fetchAllDataForTables();
       fetchSelectData();
     } catch (err) {
-      const errorData = err.response?.data;
-      let errorMsg = err.message;
-      if (typeof errorData === 'string') {
-        errorMsg = errorData;
-      } else if (typeof errorData === 'object' && errorData !== null) {
-        errorMsg = Object.values(errorData).join(', ');
-      }
-      message.error(`Failed to save author: ${errorMsg}`);
+      let errorMsg = "An unexpected error occurred while saving the author.";
+      if (err.response) {
+        if (typeof err.response.data === 'string' && err.response.data) errorMsg = err.response.data;
+        else if (typeof err.response.data === 'object' && err.response.data !== null) errorMsg = JSON.stringify(err.response.data);
+        else if (err.response.statusText) errorMsg = `Error: ${err.response.status} - ${err.response.statusText}`;
+      } else if (err.message) errorMsg = err.message;
+      message.error(`Failed to save author: ${errorMsg}`, 7);
+    } finally {
+      setIsSubmittingAuthor(false);
     }
   };
 
   const authorColumns = [
-    // { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 }, // УДАЛЕНО
     { title: 'Author Name', dataIndex: 'authorName', key: 'authorName', sorter: (a, b) => a.authorName.localeCompare(b.authorName) },
     {
       title: 'Books', dataIndex: 'books', key: 'books',
@@ -237,14 +245,14 @@ const App = () => {
     },
   ];
 
-  // --- Логика для Категорий ---
   const handleCategoryFormFinish = async (values) => {
+    setIsSubmittingCategory(true);
     const payload = {
       name: values.name,
       bookIds: values.bookIds || []
     };
     try {
-      if (editingCategory) {
+      if (editingCategory && editingCategory.id) {
         await axios.put(`${API_BASE_URL}/categories/${editingCategory.id}`, payload);
         message.success('Category updated successfully!');
       } else {
@@ -253,22 +261,23 @@ const App = () => {
       }
       setIsCategoryModalVisible(false);
       categoryForm.resetFields();
+      setEditingCategory(null);
       fetchAllDataForTables();
       fetchSelectData();
     } catch (err) {
-      const errorData = err.response?.data;
-      let errorMsg = err.message;
-      if (typeof errorData === 'string') {
-        errorMsg = errorData;
-      } else if (typeof errorData === 'object' && errorData !== null) {
-        errorMsg = Object.values(errorData).join(', ');
-      }
-      message.error(`Failed to save category: ${errorMsg}`);
+      let errorMsg = "An unexpected error occurred while saving the category.";
+      if (err.response) {
+        if (typeof err.response.data === 'string' && err.response.data) errorMsg = err.response.data;
+        else if (typeof err.response.data === 'object' && err.response.data !== null) errorMsg = JSON.stringify(err.response.data);
+        else if (err.response.statusText) errorMsg = `Error: ${err.response.status} - ${err.response.statusText}`;
+      } else if (err.message) errorMsg = err.message;
+      message.error(`Failed to save category: ${errorMsg}`, 7);
+    } finally {
+      setIsSubmittingCategory(false);
     }
   };
 
   const categoryColumns = [
-    // { title: 'ID', dataIndex: 'id', key: 'id', sorter: (a, b) => a.id - b.id, width: 80 }, // УДАЛЕНО
     { title: 'Category Name', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
     {
       title: 'Books', dataIndex: 'books', key: 'books',
@@ -287,7 +296,6 @@ const App = () => {
     },
   ];
 
-  // --- Рендер таблиц и модальных окон ---
   const renderTableSection = (title, data, columns, isLoading, errorMsg, onAdd) => (
       <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -329,18 +337,42 @@ const App = () => {
             onCancel={() => handleModalCancel(setIsBookModalVisible, bookForm)}
             onOk={() => bookForm.submit()}
             destroyOnClose
-            confirmLoading={loading.books || loading.selectData}
+            confirmLoading={isSubmittingBook}
         >
           <Form form={bookForm} layout="vertical" name="bookForm" onFinish={handleBookFormFinish} preserve={false}>
-            <Form.Item name="name" label="Book Name" rules={[{ required: true, message: 'Please input the book name!' }]}>
+            <Form.Item
+                name="name"
+                label="Book Name"
+                rules={[
+                  { required: true, message: 'Please input the book name!' },
+                  { max: 20, message: 'Book name cannot exceed 20 characters.'} // << ВАЛИДАЦИЯ ДЛИНЫ
+                ]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item name="authorId" label="Author" rules={[{ required: true, message: 'Please select an author!' }]}>
+            <Form.Item
+                name="authorId"
+                label="Author"
+                rules={[{ required: true, message: 'Please select an author!' }]}
+            >
               <Select placeholder="Select an author" loading={loading.selectData} allowClear>
                 {allAuthorsForSelect.map(author => <Option key={author.id} value={author.id}>{author.name}</Option>)}
               </Select>
             </Form.Item>
-            <Form.Item name="categoryIds" label="Categories">
+            <Form.Item
+                name="categoryIds"
+                label="Categories"
+                rules={[ // << ВАЛИДАЦИЯ КОЛИЧЕСТВА КАТЕГОРИЙ
+                  {
+                    validator: (_, value) => {
+                      if (value && value.length > 5) { // Пример: максимум 5 категорий
+                        return Promise.reject(new Error('A maximum of 5 categories can be selected.'));
+                      }
+                      return Promise.resolve();
+                    }
+                  }
+                ]}
+            >
               <Select mode="multiple" placeholder="Select categories" loading={loading.selectData} allowClear>
                 {allCategoriesForSelect.map(category => <Option key={category.id} value={category.id}>{category.name}</Option>)}
               </Select>
@@ -355,16 +387,18 @@ const App = () => {
             onCancel={() => handleModalCancel(setIsAuthorModalVisible, authorForm)}
             onOk={() => authorForm.submit()}
             destroyOnClose
-            confirmLoading={loading.authors || loading.selectData}
+            confirmLoading={isSubmittingAuthor}
         >
           <Form form={authorForm} layout="vertical" name="authorForm" onFinish={handleAuthorFormFinish} preserve={false}>
-            <Form.Item name="name" label="Author Name" rules={[{ required: true, message: 'Please input the author name!' }]}>
+            <Form.Item
+                name="name"
+                label="Author Name"
+                rules={[
+                  { required: true, message: 'Please input the author name!' },
+                  { max: 20, message: 'Author name cannot exceed 20 characters.'} // << ВАЛИДАЦИЯ ДЛИНЫ
+                ]}
+            >
               <Input />
-            </Form.Item>
-            <Form.Item name="bookIds" label="Books by this Author">
-              <Select mode="multiple" placeholder="Select books" loading={loading.selectData || loading.books} allowClear>
-                {allBooksForSelect.map(book => <Option key={book.id} value={book.id}>{book.name}</Option>)}
-              </Select>
             </Form.Item>
           </Form>
         </Modal>
@@ -376,10 +410,17 @@ const App = () => {
             onCancel={() => handleModalCancel(setIsCategoryModalVisible, categoryForm)}
             onOk={() => categoryForm.submit()}
             destroyOnClose
-            confirmLoading={loading.categories || loading.selectData}
+            confirmLoading={isSubmittingCategory}
         >
           <Form form={categoryForm} layout="vertical" name="categoryForm" onFinish={handleCategoryFormFinish} preserve={false}>
-            <Form.Item name="name" label="Category Name" rules={[{ required: true, message: 'Please input the category name!' }]}>
+            <Form.Item
+                name="name"
+                label="Category Name"
+                rules={[
+                  { required: true, message: 'Please input the category name!' },
+                  { max: 20, message: 'Category name cannot exceed 20 characters.'} // << ВАЛИДАЦИЯ ДЛИНЫ
+                ]}
+            >
               <Input />
             </Form.Item>
             <Form.Item name="bookIds" label="Books in this Category">
