@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react'; // Добавлен useMemo
 import axios from 'axios';
 import {
   Layout, Typography, Table, Tag, Spin, Alert, Divider, Space, Button, Modal, Form, Input, Select, message, Popconfirm
@@ -6,12 +6,14 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 
 const { Header, Content, Footer } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 
-const API_BASE_URL = 'http://localhost:8080/api/v2'; // Для локальной разработки
+const API_BASE_URL = 'http://localhost:8080/api/v2';
 
 const App = () => {
+  // ... (все ваши существующие состояния useState) ...
+
   const [books, setBooks] = useState([]);
   const [authors, setAuthors] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -38,13 +40,13 @@ const App = () => {
   const [categoryForm] = Form.useForm();
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
 
-  const fetchData = async (endpoint, setData, entityName, showSuccess = false) => {
+
+  const fetchData = useCallback(async (endpoint, setData, entityName) => {
     try {
       setLoading(prev => ({ ...prev, [entityName]: true }));
       setError(prev => ({ ...prev, [entityName]: null }));
       const response = await axios.get(`${API_BASE_URL}/${endpoint}`);
       setData(response.data);
-      if (showSuccess) message.success(`${entityName.charAt(0).toUpperCase() + entityName.slice(1)} loaded successfully!`);
     } catch (err) {
       setError(prev => ({ ...prev, [entityName]: `Failed to fetch ${entityName}: ${err.message}` }));
       setData([]);
@@ -52,15 +54,15 @@ const App = () => {
     } finally {
       setLoading(prev => ({ ...prev, [entityName]: false }));
     }
-  };
+  }, []);
 
-  const fetchAllDataForTables = () => {
+  const fetchAllDataForTables = useCallback(() => {
     fetchData('books', setBooks, 'books');
     fetchData('authors', setAuthors, 'authors');
     fetchData('categories', setCategories, 'categories');
-  };
+  }, [fetchData]);
 
-  const fetchSelectData = async () => {
+  const fetchSelectData = useCallback(async () => {
     setLoading(prev => ({ ...prev, selectData: true }));
     try {
       const [authorsRes, categoriesRes, booksRes] = await Promise.all([
@@ -78,48 +80,78 @@ const App = () => {
     } finally {
       setLoading(prev => ({ ...prev, selectData: false }));
     }
-  };
+  }, []);
+
 
   useEffect(() => {
     fetchAllDataForTables();
     fetchSelectData();
-  }, []);
+  }, [fetchAllDataForTables, fetchSelectData]);
 
-  const handleModalOpen = (setter, form, record = null, recordSetter) => {
-    recordSetter(record);
-    if (record) {
-      if (form === bookForm) {
-        const author = allAuthorsForSelect.find(a => a.name === record.authorName);
-        const categoryIds = record.categories
+  // ИЗМЕНЕНИЕ: Логика инициализации формы книги перенесена в useEffect
+  useEffect(() => {
+    if (isBookModalVisible && bookForm) {
+      if (editingBook && allAuthorsForSelect.length > 0 && allCategoriesForSelect.length > 0) {
+        const author = allAuthorsForSelect.find(a => a.name === editingBook.authorName);
+        const categoryIds = editingBook.categories
             ? allCategoriesForSelect
-                .filter(c => record.categories.includes(c.name))
+                .filter(c => editingBook.categories.includes(c.name))
                 .map(c => c.id)
             : [];
-        form.setFieldsValue({
-          name: record.bookName,
+        bookForm.setFieldsValue({
+          name: editingBook.bookName,
           authorId: author ? author.id : undefined,
           categoryIds: categoryIds,
         });
-      } else if (form === authorForm) {
-        form.setFieldsValue({ name: record.authorName });
-      } else if (form === categoryForm) {
-        const categoryBookIds = record.books
-            ? allBooksForSelect.filter(b => record.books.includes(b.name)).map(b => b.id)
-            : [];
-        form.setFieldsValue({
-          name: record.name,
-          bookIds: categoryBookIds
-        });
+      } else if (!editingBook) {
+        bookForm.resetFields(); // Для новой книги форма должна быть пустой
       }
-    } else {
-      form.resetFields();
     }
-    setter(true);
+  }, [isBookModalVisible, editingBook, bookForm, allAuthorsForSelect, allCategoriesForSelect]);
+
+  // ИЗМЕНЕНИЕ: Логика инициализации формы автора перенесена в useEffect
+  useEffect(() => {
+    if (isAuthorModalVisible && authorForm) {
+      if (editingAuthor) {
+        authorForm.setFieldsValue({
+          name: editingAuthor.authorName,
+        });
+      } else {
+        authorForm.resetFields();
+      }
+    }
+  }, [isAuthorModalVisible, editingAuthor, authorForm]);
+
+  // ИЗМЕНЕНИЕ: Логика инициализации формы категории перенесена в useEffect
+  useEffect(() => {
+    if (isCategoryModalVisible && categoryForm) {
+      if (editingCategory && allBooksForSelect.length > 0) {
+        const categoryBookIds = editingCategory.books
+            ? allBooksForSelect
+                .filter(b => editingCategory.books.includes(b.name))
+                .map(b => b.id)
+            : [];
+        categoryForm.setFieldsValue({
+          name: editingCategory.name,
+          bookIds: categoryBookIds,
+        });
+      } else if (!editingCategory) {
+        categoryForm.resetFields();
+      }
+    }
+  }, [isCategoryModalVisible, editingCategory, categoryForm, allBooksForSelect]);
+
+
+  const handleModalOpen = (setter, form, record = null, recordSetter) => {
+    recordSetter(record); // Устанавливаем editingBook, editingAuthor или editingCategory
+    // form.resetFields(); // Убрано, т.к. useEffect и destroyOnClose обрабатывают это
+    // setTimeout для form.setFieldsValue УБРАН ОТСЮДА
+    setter(true); // Открываем модальное окно
   };
 
-  const handleModalCancel = (setter, form) => {
+
+  const handleModalCancel = (setter) => {
     setter(false);
-    form.resetFields();
     if (setter === setIsBookModalVisible) setEditingBook(null);
     if (setter === setIsAuthorModalVisible) setEditingAuthor(null);
     if (setter === setIsCategoryModalVisible) setEditingCategory(null);
@@ -129,8 +161,8 @@ const App = () => {
     try {
       await axios.delete(`${API_BASE_URL}/${endpoint}/${id}`);
       message.success(`${entityName} deleted successfully!`);
-      fetchAllDataForTables();
-      fetchSelectData();
+      fetchAllDataForTables(); // Перезагружаем данные таблиц
+      fetchSelectData();    // Перезагружаем данные для селектов
     } catch (err) {
       message.error(`Failed to delete ${entityName}: ${err.response?.data || err.message}`);
     }
@@ -140,9 +172,10 @@ const App = () => {
     setIsSubmittingBook(true);
     const payload = {
       authorId: values.authorId,
-      name: values.name,
+      name: values.name, // Это имя книги для создания
       categoryIds: values.categoryIds || [],
-      bookName: values.name,
+      // Для обновления DTO ожидает bookName и categoriesIds
+      bookName: values.name, // Это имя книги для обновления
       categoriesIds: values.categoryIds || []
     };
 
@@ -155,10 +188,9 @@ const App = () => {
         message.success('Book added successfully!');
       }
       setIsBookModalVisible(false);
-      bookForm.resetFields();
       setEditingBook(null);
-      fetchAllDataForTables();
-      fetchSelectData();
+      fetchAllDataForTables(); // Перезагружаем данные таблиц
+      fetchSelectData();    // Перезагружаем данные для селектов
     } catch (err) {
       let errorMsg = "An unexpected error occurred while saving the book.";
       if (err.response) {
@@ -173,6 +205,8 @@ const App = () => {
       setIsSubmittingBook(false);
     }
   };
+
+  // ... (остальной код handleAuthorFormFinish, handleCategoryFormFinish, колонки таблиц, renderTableSection)
 
   const bookColumns = [
     { title: 'Book Name', dataIndex: 'bookName', key: 'bookName', sorter: (a, b) => a.bookName.localeCompare(b.bookName) },
@@ -197,8 +231,8 @@ const App = () => {
   const handleAuthorFormFinish = async (values) => {
     setIsSubmittingAuthor(true);
     const payload = {
-      name: values.name,
-      authorName: values.name,
+      name: values.name, // Для создания
+      authorName: values.name, // Для обновления
     };
     try {
       if (editingAuthor && editingAuthor.id) {
@@ -209,7 +243,6 @@ const App = () => {
         message.success('Author added successfully!');
       }
       setIsAuthorModalVisible(false);
-      authorForm.resetFields();
       setEditingAuthor(null);
       fetchAllDataForTables();
       fetchSelectData();
@@ -260,7 +293,6 @@ const App = () => {
         message.success('Category added successfully!');
       }
       setIsCategoryModalVisible(false);
-      categoryForm.resetFields();
       setEditingCategory(null);
       fetchAllDataForTables();
       fetchSelectData();
@@ -311,6 +343,7 @@ const App = () => {
       </>
   );
 
+
   return (
       <Layout style={{ minHeight: '100vh' }}>
         <Header style={{ display: 'flex', alignItems: 'center' }}>
@@ -334,18 +367,25 @@ const App = () => {
         <Modal
             title={editingBook ? 'Edit Book' : 'Add New Book'}
             open={isBookModalVisible}
-            onCancel={() => handleModalCancel(setIsBookModalVisible, bookForm)}
+            onCancel={() => handleModalCancel(setIsBookModalVisible)}
             onOk={() => bookForm.submit()}
-            destroyOnClose
+            destroyOnClose // Важно для сброса состояния формы при закрытии
             confirmLoading={isSubmittingBook}
         >
-          <Form form={bookForm} layout="vertical" name="bookForm" onFinish={handleBookFormFinish} preserve={false}>
+          <Form
+              form={bookForm}
+              layout="vertical"
+              name="bookForm"
+              onFinish={handleBookFormFinish}
+              // initialValues можно убрать, так как useEffect теперь управляет значениями
+              // preserve={false} // Не нужно с destroyOnClose
+          >
             <Form.Item
                 name="name"
                 label="Book Name"
                 rules={[
                   { required: true, message: 'Please input the book name!' },
-                  { max: 20, message: 'Book name cannot exceed 20 characters.'} // << ВАЛИДАЦИЯ ДЛИНЫ
+                  { max: 20, message: 'Book name cannot exceed 20 characters.'}
                 ]}
             >
               <Input />
@@ -355,17 +395,17 @@ const App = () => {
                 label="Author"
                 rules={[{ required: true, message: 'Please select an author!' }]}
             >
-              <Select placeholder="Select an author" loading={loading.selectData} allowClear>
+              <Select placeholder="Select an author" loading={loading.selectData || allAuthorsForSelect.length === 0} allowClear>
                 {allAuthorsForSelect.map(author => <Option key={author.id} value={author.id}>{author.name}</Option>)}
               </Select>
             </Form.Item>
             <Form.Item
                 name="categoryIds"
                 label="Categories"
-                rules={[ // << ВАЛИДАЦИЯ КОЛИЧЕСТВА КАТЕГОРИЙ
+                rules={[
                   {
                     validator: (_, value) => {
-                      if (value && value.length > 5) { // Пример: максимум 5 категорий
+                      if (value && value.length > 5) {
                         return Promise.reject(new Error('A maximum of 5 categories can be selected.'));
                       }
                       return Promise.resolve();
@@ -373,7 +413,7 @@ const App = () => {
                   }
                 ]}
             >
-              <Select mode="multiple" placeholder="Select categories" loading={loading.selectData} allowClear>
+              <Select mode="multiple" placeholder="Select categories" loading={loading.selectData || allCategoriesForSelect.length === 0} allowClear>
                 {allCategoriesForSelect.map(category => <Option key={category.id} value={category.id}>{category.name}</Option>)}
               </Select>
             </Form.Item>
@@ -384,18 +424,18 @@ const App = () => {
         <Modal
             title={editingAuthor ? 'Edit Author' : 'Add New Author'}
             open={isAuthorModalVisible}
-            onCancel={() => handleModalCancel(setIsAuthorModalVisible, authorForm)}
+            onCancel={() => handleModalCancel(setIsAuthorModalVisible)}
             onOk={() => authorForm.submit()}
             destroyOnClose
             confirmLoading={isSubmittingAuthor}
         >
-          <Form form={authorForm} layout="vertical" name="authorForm" onFinish={handleAuthorFormFinish} preserve={false}>
+          <Form form={authorForm} layout="vertical" name="authorForm" onFinish={handleAuthorFormFinish}>
             <Form.Item
                 name="name"
                 label="Author Name"
                 rules={[
                   { required: true, message: 'Please input the author name!' },
-                  { max: 20, message: 'Author name cannot exceed 20 characters.'} // << ВАЛИДАЦИЯ ДЛИНЫ
+                  { max: 20, message: 'Author name cannot exceed 20 characters.'}
                 ]}
             >
               <Input />
@@ -407,24 +447,24 @@ const App = () => {
         <Modal
             title={editingCategory ? 'Edit Category' : 'Add New Category'}
             open={isCategoryModalVisible}
-            onCancel={() => handleModalCancel(setIsCategoryModalVisible, categoryForm)}
+            onCancel={() => handleModalCancel(setIsCategoryModalVisible)}
             onOk={() => categoryForm.submit()}
             destroyOnClose
             confirmLoading={isSubmittingCategory}
         >
-          <Form form={categoryForm} layout="vertical" name="categoryForm" onFinish={handleCategoryFormFinish} preserve={false}>
+          <Form form={categoryForm} layout="vertical" name="categoryForm" onFinish={handleCategoryFormFinish}>
             <Form.Item
                 name="name"
                 label="Category Name"
                 rules={[
                   { required: true, message: 'Please input the category name!' },
-                  { max: 20, message: 'Category name cannot exceed 20 characters.'} // << ВАЛИДАЦИЯ ДЛИНЫ
+                  { max: 20, message: 'Category name cannot exceed 20 characters.'}
                 ]}
             >
               <Input />
             </Form.Item>
             <Form.Item name="bookIds" label="Books in this Category">
-              <Select mode="multiple" placeholder="Select books" loading={loading.selectData || loading.books} allowClear>
+              <Select mode="multiple" placeholder="Select books" loading={loading.selectData || loading.books || allBooksForSelect.length === 0} allowClear>
                 {allBooksForSelect.map(book => <Option key={book.id} value={book.id}>{book.name} {book.authorName ? `(${book.authorName})` : ''}</Option>)}
               </Select>
             </Form.Item>
