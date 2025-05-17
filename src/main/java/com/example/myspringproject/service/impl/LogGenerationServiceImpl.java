@@ -59,7 +59,14 @@ public class LogGenerationServiceImpl implements LogGenerationService {
     public CompletableFuture<Void> processLogGeneration(String taskId, LocalDate date) {
         logger.info("Starting log generation for task ID: {} and date: {}", taskId, date);
         try {
+
+            Thread.sleep(9000);
+
             tasks.computeIfPresent(taskId, (k, v) -> v.withStatus(LogTaskStatus.IN_PROGRESS));
+            logger.info("Task ID: {} status updated to IN_PROGRESS", taskId);
+
+
+            Thread.sleep(3000);
 
             Path sourceLogPath = Paths.get(String.format(SOURCE_LOG_FILE_PATTERN, date.toString()));
             if (!Files.exists(sourceLogPath)) {
@@ -76,14 +83,21 @@ public class LogGenerationServiceImpl implements LogGenerationService {
                 Files.createDirectories(targetDir);
             }
 
+            Thread.sleep(3000);
+
             Path targetFilePath = targetDir.resolve(taskId + "_" + date.toString() + ".log");
             Files.copy(sourceLogPath,
                     targetFilePath, StandardCopyOption.REPLACE_EXISTING);
             logger.info("Log file generated successfully for task ID: {}. Path: {}",
                     taskId, targetFilePath);
+
+
+            Thread.sleep(3000);
+
             tasks.computeIfPresent(taskId, (k, v)
                     -> v.withStatus(LogTaskStatus.COMPLETED)
                     .withFilePath(targetFilePath.toString()));
+            logger.info("Task ID: {} status updated to COMPLETED", taskId);
 
         } catch (IOException e) {
             String errorMessage = "Error generating log file for task "
@@ -91,6 +105,13 @@ public class LogGenerationServiceImpl implements LogGenerationService {
             logger.error(errorMessage, e);
             tasks.computeIfPresent(taskId, (k, v)
                     -> v.withStatus(LogTaskStatus.FAILED).withErrorMessage(errorMessage));
+        } catch (InterruptedException e) {
+            String errorMessage = "Log generation task "
+                    + taskId + " was interrupted: " + e.getMessage();
+            logger.error(errorMessage, e);
+            tasks.computeIfPresent(taskId, (k, v)
+                    -> v.withStatus(LogTaskStatus.FAILED).withErrorMessage(errorMessage));
+            Thread.currentThread().interrupt();
         }
         return CompletableFuture.completedFuture(null);
     }
