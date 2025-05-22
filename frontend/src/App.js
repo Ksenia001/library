@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'; // Добавлен useMemo
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import {
   Layout, Typography, Table, Tag, Spin, Alert, Divider, Space, Button, Modal, Form, Input, Select, message, Popconfirm
@@ -12,7 +12,6 @@ const { Option } = Select;
 const API_BASE_URL = 'http://localhost:8080/api/v2';
 
 const App = () => {
-  // ... (все ваши существующие состояния useState) ...
 
   const [books, setBooks] = useState([]);
   const [authors, setAuthors] = useState([]);
