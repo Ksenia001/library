@@ -5,13 +5,12 @@ import {
   Layout, Typography, Table, Tag, Spin, Alert, Space, Button,
   Modal, Form, Input, Select, message, Popconfirm, Tabs
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, BookOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons'; // Removed UploadOutlined
+import { PlusOutlined, EditOutlined, DeleteOutlined, BookOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons';
 
 const { Header, Content, Footer } = Layout;
 const { Title } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
-// const { TextArea } = Input; // TextArea no longer needed
 const { Search } = Input;
 
 const API_BASE_URL = 'http://localhost:8080/api/v2';
@@ -19,9 +18,6 @@ const DEFAULT_ERROR_MESSAGE = "An unexpected error occurred.";
 const MAX_NAME_LENGTH = 20;
 const MAX_CATEGORIES_PER_BOOK = 5;
 
-/**
- * Main application component with tabbed interface for managing library data.
- */
 const App = () => {
   const [activeTabKey, setActiveTabKey] = useState('books');
 
@@ -59,7 +55,6 @@ const App = () => {
   const [categoryForm] = Form.useForm();
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
 
-  // State for bulk book modal removed
 
   const fetchData = useCallback(async (endpoint, setData, entityName, setLoadingState, setErrorState) => {
     try {
@@ -337,7 +332,6 @@ const App = () => {
     },
   ];
 
-  // handleBulkBookFormFinish function removed
 
   const filteredBooks = useMemo(() => {
     if (!bookSearchTerm) return books;
@@ -363,20 +357,19 @@ const App = () => {
 
 
   const renderTableSection = (
-      title,
+      // title parameter removed
       data,
       columns,
       currentLoading,
       currentError,
       onAddClick,
       entityName,
-      // onBulkAddClick parameter removed
       searchTerm,
       onSearchChange
   ) => (
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Title level={4} style={{ margin: 0 }}>{title}</Title>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 16 }}>
+          {/* Title removed from here */}
           <Space>
             <Search
                 placeholder={`Search ${entityName.toLowerCase()}s...`}
@@ -385,13 +378,12 @@ const App = () => {
                 style={{ width: 250 }}
                 allowClear
             />
-            {/* Bulk Add Button removed from here */}
             <Button type="primary" icon={<PlusOutlined />} onClick={onAddClick}>
               Add {entityName}
             </Button>
           </Space>
         </div>
-        {currentLoading && <Spin tip={`Loading ${title.toLowerCase()}...`}><div style={{ height: '150px' }} /></Spin>}
+        {currentLoading && <Spin tip={`Loading ${entityName.toLowerCase()}s...`}><div style={{ height: '150px' }} /></Spin>}
         {currentError && !currentLoading && <Alert message={currentError} type="error" showIcon />}
         {!currentLoading && !currentError && (
             <Table
@@ -425,14 +417,13 @@ const App = () => {
             <TabPane tab={<span><BookOutlined /> Books</span>} key="books">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
                 {renderTableSection(
-                    'Books',
+                    // 'Books' title argument removed
                     filteredBooks,
                     bookColumns,
                     loading.books,
                     error.books,
                     () => handleModalOpen(setIsBookModalVisible, bookForm, null, setEditingBook),
                     'Book',
-                    // null for onBulkAddClick
                     bookSearchTerm,
                     setBookSearchTerm
                 )}
@@ -441,7 +432,7 @@ const App = () => {
             <TabPane tab={<span><UserOutlined /> Authors</span>} key="authors">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
                 {renderTableSection(
-                    'Authors',
+                    // 'Authors' title argument removed
                     filteredAuthors,
                     authorColumns,
                     loading.authors,
@@ -456,7 +447,7 @@ const App = () => {
             <TabPane tab={<span><AppstoreOutlined /> Categories</span>} key="categories">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
                 {renderTableSection(
-                    'Categories',
+                    // 'Categories' title argument removed
                     filteredCategories,
                     categoryColumns,
                     loading.categories,
@@ -574,9 +565,6 @@ const App = () => {
             </Form.Item>
           </Form>
         </Modal>
-
-        {/* Bulk Book Add Modal Removed */}
-
       </Layout>
   );
 };
