@@ -1,16 +1,18 @@
 // file: frontend/src/App.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import {
   Layout, Typography, Table, Tag, Spin, Alert, Space, Button,
   Modal, Form, Input, Select, message, Popconfirm, Tabs
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, BookOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, BookOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons'; // Removed UploadOutlined
 
 const { Header, Content, Footer } = Layout;
 const { Title } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
+// const { TextArea } = Input; // TextArea no longer needed
+const { Search } = Input;
 
 const API_BASE_URL = 'http://localhost:8080/api/v2';
 const DEFAULT_ERROR_MESSAGE = "An unexpected error occurred.";
@@ -38,6 +40,10 @@ const App = () => {
     books: null, authors: null, categories: null, selectData: null
   });
 
+  const [bookSearchTerm, setBookSearchTerm] = useState('');
+  const [authorSearchTerm, setAuthorSearchTerm] = useState('');
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+
   const [isBookModalVisible, setIsBookModalVisible] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
   const [bookForm] = Form.useForm();
@@ -52,6 +58,8 @@ const App = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm] = Form.useForm();
   const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+
+  // State for bulk book modal removed
 
   const fetchData = useCallback(async (endpoint, setData, entityName, setLoadingState, setErrorState) => {
     try {
@@ -208,7 +216,6 @@ const App = () => {
       bookName: values.name,
       categoriesIds: values.categoryIds || []
     };
-
     try {
       if (editingBook && editingBook.id) {
         await axios.put(`${API_BASE_URL}/books/${editingBook.id}`, payload);
@@ -229,7 +236,6 @@ const App = () => {
   };
 
   const bookColumns = [
-    // ID column removed
     { title: 'Book Name', dataIndex: 'bookName', key: 'bookName', sorter: (a, b) => a.bookName.localeCompare(b.bookName) },
     { title: 'Author', dataIndex: 'authorName', key: 'authorName', sorter: (a, b) => (a.authorName || "").localeCompare(b.authorName || "") },
     {
@@ -272,7 +278,6 @@ const App = () => {
   };
 
   const authorColumns = [
-    // ID column removed
     { title: 'Author Name', dataIndex: 'authorName', key: 'authorName', sorter: (a, b) => a.authorName.localeCompare(b.authorName) },
     {
       title: 'Books', dataIndex: 'books', key: 'books',
@@ -314,7 +319,6 @@ const App = () => {
   };
 
   const categoryColumns = [
-    // ID column removed
     { title: 'Category Name', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
     {
       title: 'Books', dataIndex: 'books', key: 'books',
@@ -333,13 +337,59 @@ const App = () => {
     },
   ];
 
-  const renderTableSection = (title, data, columns, currentLoading, currentError, onAddClick, entityName) => (
+  // handleBulkBookFormFinish function removed
+
+  const filteredBooks = useMemo(() => {
+    if (!bookSearchTerm) return books;
+    return books.filter(book =>
+        book.bookName.toLowerCase().includes(bookSearchTerm.toLowerCase()) ||
+        (book.authorName && book.authorName.toLowerCase().includes(bookSearchTerm.toLowerCase()))
+    );
+  }, [books, bookSearchTerm]);
+
+  const filteredAuthors = useMemo(() => {
+    if (!authorSearchTerm) return authors;
+    return authors.filter(author =>
+        author.authorName.toLowerCase().includes(authorSearchTerm.toLowerCase())
+    );
+  }, [authors, authorSearchTerm]);
+
+  const filteredCategories = useMemo(() => {
+    if (!categorySearchTerm) return categories;
+    return categories.filter(category =>
+        category.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+    );
+  }, [categories, categorySearchTerm]);
+
+
+  const renderTableSection = (
+      title,
+      data,
+      columns,
+      currentLoading,
+      currentError,
+      onAddClick,
+      entityName,
+      // onBulkAddClick parameter removed
+      searchTerm,
+      onSearchChange
+  ) => (
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Title level={4} style={{ margin: 0 }}>{title}</Title>
-          <Button type="primary" icon={<PlusOutlined />} onClick={onAddClick}>
-            Add {entityName}
-          </Button>
+          <Space>
+            <Search
+                placeholder={`Search ${entityName.toLowerCase()}s...`}
+                value={searchTerm}
+                onChange={(e) => onSearchChange(e.target.value)}
+                style={{ width: 250 }}
+                allowClear
+            />
+            {/* Bulk Add Button removed from here */}
+            <Button type="primary" icon={<PlusOutlined />} onClick={onAddClick}>
+              Add {entityName}
+            </Button>
+          </Space>
         </div>
         {currentLoading && <Spin tip={`Loading ${title.toLowerCase()}...`}><div style={{ height: '150px' }} /></Spin>}
         {currentError && !currentLoading && <Alert message={currentError} type="error" showIcon />}
@@ -348,11 +398,7 @@ const App = () => {
                 dataSource={data.map(item => ({ ...item, key: item.id }))}
                 columns={columns}
                 rowKey="id"
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: false, // Page size changer removed
-                  // pageSizeOptions: ['5', '10', '20'] // Options removed
-                }}
+                pagination={{ pageSize: 10, showSizeChanger: false }}
                 scroll={{ x: 'max-content' }}
                 size="small"
             />
@@ -376,28 +422,50 @@ const App = () => {
           }
 
           <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} type="card">
-            <TabPane
-                tab={<span><BookOutlined /> Books</span>}
-                key="books"
-            >
+            <TabPane tab={<span><BookOutlined /> Books</span>} key="books">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
-                {renderTableSection('Books', books, bookColumns, loading.books, error.books, () => handleModalOpen(setIsBookModalVisible, bookForm, null, setEditingBook), 'Book')}
+                {renderTableSection(
+                    'Books',
+                    filteredBooks,
+                    bookColumns,
+                    loading.books,
+                    error.books,
+                    () => handleModalOpen(setIsBookModalVisible, bookForm, null, setEditingBook),
+                    'Book',
+                    // null for onBulkAddClick
+                    bookSearchTerm,
+                    setBookSearchTerm
+                )}
               </div>
             </TabPane>
-            <TabPane
-                tab={<span><UserOutlined /> Authors</span>}
-                key="authors"
-            >
+            <TabPane tab={<span><UserOutlined /> Authors</span>} key="authors">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
-                {renderTableSection('Authors', authors, authorColumns, loading.authors, error.authors, () => handleModalOpen(setIsAuthorModalVisible, authorForm, null, setEditingAuthor), 'Author')}
+                {renderTableSection(
+                    'Authors',
+                    filteredAuthors,
+                    authorColumns,
+                    loading.authors,
+                    error.authors,
+                    () => handleModalOpen(setIsAuthorModalVisible, authorForm, null, setEditingAuthor),
+                    'Author',
+                    authorSearchTerm,
+                    setAuthorSearchTerm
+                )}
               </div>
             </TabPane>
-            <TabPane
-                tab={<span><AppstoreOutlined /> Categories</span>}
-                key="categories"
-            >
+            <TabPane tab={<span><AppstoreOutlined /> Categories</span>} key="categories">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
-                {renderTableSection('Categories', categories, categoryColumns, loading.categories, error.categories, () => handleModalOpen(setIsCategoryModalVisible, categoryForm, null, setEditingCategory), 'Category')}
+                {renderTableSection(
+                    'Categories',
+                    filteredCategories,
+                    categoryColumns,
+                    loading.categories,
+                    error.categories,
+                    () => handleModalOpen(setIsCategoryModalVisible, categoryForm, null, setEditingCategory),
+                    'Category',
+                    categorySearchTerm,
+                    setCategorySearchTerm
+                )}
               </div>
             </TabPane>
           </Tabs>
@@ -406,7 +474,7 @@ const App = () => {
           Library UI ©{new Date().getFullYear()}
         </Footer>
 
-        {/* Book Modal */}
+        {/* Book Modal (Single Add/Edit) */}
         <Modal
             title={editingBook ? 'Edit Book' : 'Add New Book'}
             open={isBookModalVisible}
@@ -506,6 +574,9 @@ const App = () => {
             </Form.Item>
           </Form>
         </Modal>
+
+        {/* Bulk Book Add Modal Removed */}
+
       </Layout>
   );
 };
