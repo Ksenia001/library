@@ -349,8 +349,9 @@ const App = () => {
                 columns={columns}
                 rowKey="id"
                 pagination={{
-                  pageSize: 5,
-                  showSizeChanger: false,
+                  pageSize: 10,
+                  showSizeChanger: false, // Page size changer removed
+                  // pageSizeOptions: ['5', '10', '20'] // Options removed
                 }}
                 scroll={{ x: 'max-content' }}
                 size="small"
