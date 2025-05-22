@@ -1,17 +1,16 @@
-// file: frontend/src/App.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import {
-  Layout, Typography, Table, Tag, Spin, Alert, Space, Button,
+  Layout, Typography, Tag, Spin, Alert, Space, Button,
   Modal, Form, Input, Select, message, Popconfirm, Tabs
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, BookOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, BookOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons';
+import TableSection from './components/TableSection';
 
 const { Header, Content, Footer } = Layout;
 const { Title } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
-const { Search } = Input;
 
 const API_BASE_URL = 'http://localhost:8080/api/v2';
 const DEFAULT_ERROR_MESSAGE = "An unexpected error occurred.";
@@ -114,58 +113,56 @@ const App = () => {
   }, [fetchAllDataForTables, fetchSelectData]);
 
   useEffect(() => {
-    if (isBookModalVisible && bookForm) {
-      if (editingBook && allAuthorsForSelect.length > 0 && allCategoriesForSelect.length > 0) {
-        const author = allAuthorsForSelect.find(a => a.name === editingBook.authorName);
-        const categoryIds = (editingBook.categories || [])
-            .map(catName => allCategoriesForSelect.find(c => c.name === catName)?.id)
-            .filter(id => id != null);
-        bookForm.setFieldsValue({
-          name: editingBook.bookName,
-          authorId: author ? author.id : undefined,
-          categoryIds: categoryIds,
-        });
-      } else if (!editingBook) {
-        bookForm.resetFields();
-      }
+    if (!isBookModalVisible) return;
+    if (editingBook && allAuthorsForSelect.length > 0 && allCategoriesForSelect.length > 0) {
+      const author = allAuthorsForSelect.find(a => a.name === editingBook.authorName);
+      const categoryIds = (editingBook.categories || [])
+          .map(catName => allCategoriesForSelect.find(c => c.name === catName)?.id)
+          .filter(id => id != null);
+      bookForm.setFieldsValue({
+        name: editingBook.bookName,
+        authorId: author?.id,
+        categoryIds: categoryIds,
+      });
+    } else {
+      bookForm.resetFields();
     }
   }, [isBookModalVisible, editingBook, bookForm, allAuthorsForSelect, allCategoriesForSelect]);
 
   useEffect(() => {
-    if (isAuthorModalVisible && authorForm) {
-      if (editingAuthor) {
-        authorForm.setFieldsValue({ name: editingAuthor.authorName });
-      } else {
-        authorForm.resetFields();
-      }
+    if (!isAuthorModalVisible) return;
+    if (editingAuthor) {
+      authorForm.setFieldsValue({ name: editingAuthor.authorName });
+    } else {
+      authorForm.resetFields();
     }
   }, [isAuthorModalVisible, editingAuthor, authorForm]);
 
   useEffect(() => {
-    if (isCategoryModalVisible && categoryForm) {
-      if (editingCategory && allBooksForSelect.length > 0) {
-        const categoryBookIds = (editingCategory.books || [])
-            .map(bookName => allBooksForSelect.find(b => b.name === bookName)?.id)
-            .filter(id => id != null);
-        categoryForm.setFieldsValue({
-          name: editingCategory.name,
-          bookIds: categoryBookIds,
-        });
-      } else if (!editingCategory) {
-        categoryForm.resetFields();
-      }
+    if (!isCategoryModalVisible) return;
+    if (editingCategory && allBooksForSelect.length > 0) {
+      const categoryBookIds = (editingCategory.books || [])
+          .map(bookName => allBooksForSelect.find(b => b.name === bookName)?.id)
+          .filter(id => id != null);
+      categoryForm.setFieldsValue({
+        name: editingCategory.name,
+        bookIds: categoryBookIds,
+      });
+    } else {
+      categoryForm.resetFields();
     }
   }, [isCategoryModalVisible, editingCategory, categoryForm, allBooksForSelect]);
 
 
-  const handleModalOpen = (modalSetter, currentForm, record, recordSetter) => {
+  const handleModalOpen = (modalSetter, record, recordSetter) => {
     recordSetter(record);
     modalSetter(true);
   };
 
-  const handleModalCancel = (modalSetter, recordSetter) => {
+  const handleModalCancel = (modalSetter, recordSetter, currentForm) => {
     modalSetter(false);
     recordSetter(null);
+    currentForm.resetFields();
   };
 
   const handleDelete = async (id, endpoint, entityName) => {
@@ -181,22 +178,18 @@ const App = () => {
   };
 
   const parseBackendError = (err) => {
-    if (err.response && err.response.data) {
-      if (typeof err.response.data === 'string' && err.response.data) {
-        return err.response.data;
-      }
-      if (Array.isArray(err.response.data)) {
-        return err.response.data.join('; ');
-      }
-      if (typeof err.response.data === 'object' && err.response.data !== null) {
-        const validationErrors = Object.values(err.response.data).join('; ');
-        if (validationErrors) return validationErrors;
-        if (err.response.data.message) return err.response.data.message;
-        return JSON.stringify(err.response.data);
-      }
-      if (err.response.statusText) {
-        return `Error ${err.response.status}: ${err.response.statusText}`;
-      }
+    const responseData = err.response?.data;
+    if (typeof responseData === 'string' && responseData) {
+      return responseData;
+    }
+    if (Array.isArray(responseData)) {
+      return responseData.join('; ');
+    }
+    if (typeof responseData === 'object' && responseData !== null) {
+      const validationErrors = Object.values(responseData).join('; ');
+      if (validationErrors && validationErrors !== '{}') return validationErrors;
+      if (responseData.message) return responseData.message;
+      return JSON.stringify(responseData);
     }
     return err.message || DEFAULT_ERROR_MESSAGE;
   };
@@ -212,7 +205,7 @@ const App = () => {
       categoriesIds: values.categoryIds || []
     };
     try {
-      if (editingBook && editingBook.id) {
+      if (editingBook?.id) {
         await axios.put(`${API_BASE_URL}/books/${editingBook.id}`, payload);
         message.success('Book updated successfully!');
       } else {
@@ -221,6 +214,7 @@ const App = () => {
       }
       setIsBookModalVisible(false);
       setEditingBook(null);
+      bookForm.resetFields();
       fetchAllDataForTables();
       fetchSelectData();
     } catch (err) {
@@ -241,7 +235,7 @@ const App = () => {
       title: 'Actions', key: 'actions', width: 100, fixed: 'right',
       render: (_, record) => (
           <Space>
-            <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsBookModalVisible, bookForm, record, setEditingBook)} type="primary" size="small" />
+            <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsBookModalVisible, record, setEditingBook)} type="primary" size="small" />
             <Popconfirm title="Delete this book?" onConfirm={() => handleDelete(record.id, 'books', 'Book')}>
               <Button icon={<DeleteOutlined />} danger type="primary" size="small" />
             </Popconfirm>
@@ -254,7 +248,7 @@ const App = () => {
     setIsSubmittingAuthor(true);
     const payload = { name: values.name, authorName: values.name };
     try {
-      if (editingAuthor && editingAuthor.id) {
+      if (editingAuthor?.id) {
         await axios.put(`${API_BASE_URL}/authors/${editingAuthor.id}`, payload);
         message.success('Author updated successfully!');
       } else {
@@ -263,6 +257,7 @@ const App = () => {
       }
       setIsAuthorModalVisible(false);
       setEditingAuthor(null);
+      authorForm.resetFields();
       fetchAllDataForTables();
       fetchSelectData();
     } catch (err) {
@@ -282,7 +277,7 @@ const App = () => {
       title: 'Actions', key: 'actions', width: 100, fixed: 'right',
       render: (_, record) => (
           <Space>
-            <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsAuthorModalVisible, authorForm, record, setEditingAuthor)} type="primary" size="small" />
+            <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsAuthorModalVisible, record, setEditingAuthor)} type="primary" size="small" />
             <Popconfirm title="Delete this author?" onConfirm={() => handleDelete(record.id, 'authors', 'Author')}>
               <Button icon={<DeleteOutlined />} danger type="primary" size="small" />
             </Popconfirm>
@@ -295,7 +290,7 @@ const App = () => {
     setIsSubmittingCategory(true);
     const payload = { name: values.name, bookIds: values.bookIds || [] };
     try {
-      if (editingCategory && editingCategory.id) {
+      if (editingCategory?.id) {
         await axios.put(`${API_BASE_URL}/categories/${editingCategory.id}`, payload);
         message.success('Category updated successfully!');
       } else {
@@ -304,6 +299,7 @@ const App = () => {
       }
       setIsCategoryModalVisible(false);
       setEditingCategory(null);
+      categoryForm.resetFields();
       fetchAllDataForTables();
       fetchSelectData();
     } catch (err) {
@@ -323,7 +319,7 @@ const App = () => {
       title: 'Actions', key: 'actions', width: 100, fixed: 'right',
       render: (_, record) => (
           <Space>
-            <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsCategoryModalVisible, categoryForm, record, setEditingCategory)} type="primary" size="small" />
+            <Button icon={<EditOutlined />} onClick={() => handleModalOpen(setIsCategoryModalVisible, record, setEditingCategory)} type="primary" size="small" />
             <Popconfirm title="Delete this category?" onConfirm={() => handleDelete(record.id, 'categories', 'Category')}>
               <Button icon={<DeleteOutlined />} danger type="primary" size="small" />
             </Popconfirm>
@@ -337,7 +333,7 @@ const App = () => {
     if (!bookSearchTerm) return books;
     return books.filter(book =>
         book.bookName.toLowerCase().includes(bookSearchTerm.toLowerCase()) ||
-        (book.authorName && book.authorName.toLowerCase().includes(bookSearchTerm.toLowerCase()))
+        book.authorName?.toLowerCase().includes(bookSearchTerm.toLowerCase())
     );
   }, [books, bookSearchTerm]);
 
@@ -355,48 +351,7 @@ const App = () => {
     );
   }, [categories, categorySearchTerm]);
 
-
-  const renderTableSection = (
-      // title parameter removed
-      data,
-      columns,
-      currentLoading,
-      currentError,
-      onAddClick,
-      entityName,
-      searchTerm,
-      onSearchChange
-  ) => (
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 16 }}>
-          {/* Title removed from here */}
-          <Space>
-            <Search
-                placeholder={`Search ${entityName.toLowerCase()}s...`}
-                value={searchTerm}
-                onChange={(e) => onSearchChange(e.target.value)}
-                style={{ width: 250 }}
-                allowClear
-            />
-            <Button type="primary" icon={<PlusOutlined />} onClick={onAddClick}>
-              Add {entityName}
-            </Button>
-          </Space>
-        </div>
-        {currentLoading && <Spin tip={`Loading ${entityName.toLowerCase()}s...`}><div style={{ height: '150px' }} /></Spin>}
-        {currentError && !currentLoading && <Alert message={currentError} type="error" showIcon />}
-        {!currentLoading && !currentError && (
-            <Table
-                dataSource={data.map(item => ({ ...item, key: item.id }))}
-                columns={columns}
-                rowKey="id"
-                pagination={{ pageSize: 10, showSizeChanger: false }}
-                scroll={{ x: 'max-content' }}
-                size="small"
-            />
-        )}
-      </div>
-  );
+  // renderTableSection function removed
 
   return (
       <Layout style={{ minHeight: '100vh' }}>
@@ -416,47 +371,44 @@ const App = () => {
           <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} type="card">
             <TabPane tab={<span><BookOutlined /> Books</span>} key="books">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
-                {renderTableSection(
-                    // 'Books' title argument removed
-                    filteredBooks,
-                    bookColumns,
-                    loading.books,
-                    error.books,
-                    () => handleModalOpen(setIsBookModalVisible, bookForm, null, setEditingBook),
-                    'Book',
-                    bookSearchTerm,
-                    setBookSearchTerm
-                )}
+                <TableSection
+                    data={filteredBooks}
+                    columns={bookColumns}
+                    loadingState={loading.books}
+                    errorState={error.books}
+                    onAddClick={() => handleModalOpen(setIsBookModalVisible, null, setEditingBook)}
+                    entityName="Book"
+                    searchTerm={bookSearchTerm}
+                    onSearchChange={setBookSearchTerm}
+                />
               </div>
             </TabPane>
             <TabPane tab={<span><UserOutlined /> Authors</span>} key="authors">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
-                {renderTableSection(
-                    // 'Authors' title argument removed
-                    filteredAuthors,
-                    authorColumns,
-                    loading.authors,
-                    error.authors,
-                    () => handleModalOpen(setIsAuthorModalVisible, authorForm, null, setEditingAuthor),
-                    'Author',
-                    authorSearchTerm,
-                    setAuthorSearchTerm
-                )}
+                <TableSection
+                    data={filteredAuthors}
+                    columns={authorColumns}
+                    loadingState={loading.authors}
+                    errorState={error.authors}
+                    onAddClick={() => handleModalOpen(setIsAuthorModalVisible, null, setEditingAuthor)}
+                    entityName="Author"
+                    searchTerm={authorSearchTerm}
+                    onSearchChange={setAuthorSearchTerm}
+                />
               </div>
             </TabPane>
             <TabPane tab={<span><AppstoreOutlined /> Categories</span>} key="categories">
               <div style={{ background: '#fff', padding: 24, borderRadius: '0 0 8px 8px' }}>
-                {renderTableSection(
-                    // 'Categories' title argument removed
-                    filteredCategories,
-                    categoryColumns,
-                    loading.categories,
-                    error.categories,
-                    () => handleModalOpen(setIsCategoryModalVisible, categoryForm, null, setEditingCategory),
-                    'Category',
-                    categorySearchTerm,
-                    setCategorySearchTerm
-                )}
+                <TableSection
+                    data={filteredCategories}
+                    columns={categoryColumns}
+                    loadingState={loading.categories}
+                    errorState={error.categories}
+                    onAddClick={() => handleModalOpen(setIsCategoryModalVisible, null, setEditingCategory)}
+                    entityName="Category"
+                    searchTerm={categorySearchTerm}
+                    onSearchChange={setCategorySearchTerm}
+                />
               </div>
             </TabPane>
           </Tabs>
@@ -465,13 +417,13 @@ const App = () => {
           Library UI ©{new Date().getFullYear()}
         </Footer>
 
-        {/* Book Modal (Single Add/Edit) */}
+        {/* Book Modal */}
         <Modal
             title={editingBook ? 'Edit Book' : 'Add New Book'}
             open={isBookModalVisible}
-            onCancel={() => handleModalCancel(setIsBookModalVisible, setEditingBook)}
+            onCancel={() => handleModalCancel(setIsBookModalVisible, setEditingBook, bookForm)}
             onOk={() => bookForm.submit()}
-            destroyOnClose
+            forceRender
             confirmLoading={isSubmittingBook}
             width={600}
         >
@@ -491,7 +443,7 @@ const App = () => {
                 label="Author"
                 rules={[{ required: true, message: 'Please select an author!' }]}
             >
-              <Select placeholder="Select an author" loading={loading.selectData && allAuthorsForSelect.length === 0} allowClear showSearch filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}>
+              <Select placeholder="Select an author" loading={loading.selectData && !allAuthorsForSelect.length} allowClear showSearch filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}>
                 {allAuthorsForSelect.map(author => <Option key={author.id} value={author.id}>{author.name}</Option>)}
               </Select>
             </Form.Item>
@@ -499,12 +451,12 @@ const App = () => {
                 name="categoryIds"
                 label="Categories"
                 rules={[{
-                  validator: (_, value) => (value && value.length > MAX_CATEGORIES_PER_BOOK) ?
+                  validator: (_, value) => (value?.length > MAX_CATEGORIES_PER_BOOK) ?
                       Promise.reject(new Error(`A maximum of ${MAX_CATEGORIES_PER_BOOK} categories can be selected.`)) :
                       Promise.resolve()
                 }]}
             >
-              <Select mode="multiple" placeholder="Select categories" loading={loading.selectData && allCategoriesForSelect.length === 0} allowClear showSearch filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}>
+              <Select mode="multiple" placeholder="Select categories" loading={loading.selectData && !allCategoriesForSelect.length} allowClear showSearch filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}>
                 {allCategoriesForSelect.map(category => <Option key={category.id} value={category.id}>{category.name}</Option>)}
               </Select>
             </Form.Item>
@@ -515,9 +467,9 @@ const App = () => {
         <Modal
             title={editingAuthor ? 'Edit Author' : 'Add New Author'}
             open={isAuthorModalVisible}
-            onCancel={() => handleModalCancel(setIsAuthorModalVisible, setEditingAuthor)}
+            onCancel={() => handleModalCancel(setIsAuthorModalVisible, setEditingAuthor, authorForm)}
             onOk={() => authorForm.submit()}
-            destroyOnClose
+            forceRender
             confirmLoading={isSubmittingAuthor}
         >
           <Form form={authorForm} layout="vertical" name="authorForm" onFinish={handleAuthorFormFinish}>
@@ -538,9 +490,9 @@ const App = () => {
         <Modal
             title={editingCategory ? 'Edit Category' : 'Add New Category'}
             open={isCategoryModalVisible}
-            onCancel={() => handleModalCancel(setIsCategoryModalVisible, setEditingCategory)}
+            onCancel={() => handleModalCancel(setIsCategoryModalVisible, setEditingCategory, categoryForm)}
             onOk={() => categoryForm.submit()}
-            destroyOnClose
+            forceRender
             confirmLoading={isSubmittingCategory}
             width={600}
         >
@@ -559,7 +511,7 @@ const App = () => {
                 name="bookIds"
                 label="Books in this Category"
             >
-              <Select mode="multiple" placeholder="Select books" loading={loading.selectData || allBooksForSelect.length === 0} allowClear showSearch filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}>
+              <Select mode="multiple" placeholder="Select books" loading={loading.selectData && !allBooksForSelect.length} allowClear showSearch filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}>
                 {allBooksForSelect.map(book => <Option key={book.id} value={book.id}>{book.name} {book.authorName ? `(${book.authorName})` : ''}</Option>)}
               </Select>
             </Form.Item>
