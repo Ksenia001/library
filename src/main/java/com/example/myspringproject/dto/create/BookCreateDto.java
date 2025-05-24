@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 public class BookCreateDto {
     @NotBlank(message = "Название книги не может быть пустым")
-    @Size(min = 1, max = 20, message = "Название книги должно быть длиной от 1 до 20 символов")
+    @Size(min = 1, max = 40, message = "Название книги должно быть длиной от 1 до 20 символов")
     private String name;
 
     @Positive(message = "ID автора должен быть положительным")

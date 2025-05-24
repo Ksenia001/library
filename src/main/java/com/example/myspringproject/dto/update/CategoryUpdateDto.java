@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 public class CategoryUpdateDto {
     @NotBlank(message = "Название категории не может быть пустым")
-    @Size(min = 1, max = 20, message = "Название категории должно быть длиной от 1 до 20 символов")
+    @Size(min = 1, max = 40, message = "Название категории должно быть длиной от 1 до 40 символов")
 
     private String name;
 

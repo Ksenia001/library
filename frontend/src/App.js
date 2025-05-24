@@ -12,9 +12,9 @@ const { Title } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
 
-const API_BASE_URL = 'http://localhost:8080/api/v2';
+const API_BASE_URL = '/api/v2';
 const DEFAULT_ERROR_MESSAGE = "An unexpected error occurred.";
-const MAX_NAME_LENGTH = 20;
+const MAX_NAME_LENGTH = 40;
 const MAX_CATEGORIES_PER_BOOK = 5;
 
 const App = () => {
@@ -350,8 +350,6 @@ const App = () => {
         category.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
     );
   }, [categories, categorySearchTerm]);
-
-  // renderTableSection function removed
 
   return (
       <Layout style={{ minHeight: '100vh' }}>

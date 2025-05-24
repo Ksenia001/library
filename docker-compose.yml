@@ -1,0 +1,73 @@
+# file: ./docker-compose.yml
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: library_db_container
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234 # Используйте ваш пароль
+      POSTGRES_DB: library_db
+    volumes:
+      - library_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - library-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d library_db -h localhost -p 5432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    container_name: library_backend_container
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/library_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 1234 # Используйте ваш пароль
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # Разрешаем доступ ко всем эндпоинтам Actuator без аутентификации (для healthcheck)
+      # В продакшене это нужно делать более безопасно!
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW-DETAILS: "always"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - library-network
+    restart: unless-stopped
+    healthcheck: # <--- ДОБАВИТЬ ЭТУ СЕКЦИЮ ДЛЯ БЭКЕНДА
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s       # Проверять каждые 15 секунд
+      timeout: 5s         # Таймаут проверки 5 секунд
+      retries: 5          # 5 попыток перед тем, как считать сервис нездоровым
+      start_period: 60s   # Дать Spring Boot 60 секунд на полный запуск перед первой проверкой
+
+  frontend:
+    container_name: library_frontend_container
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      backend: # Теперь эта зависимость будет ждать, пока backend не станет healthy
+        condition: service_healthy
+    networks:
+      - library-network
+    restart: unless-stopped
+
+volumes:
+  library_postgres_data:
+
+networks:
+  library-network:
+    driver: bridge

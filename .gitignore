@@ -6,7 +6,6 @@ target/
 !**/src/test/**/target/
 
 logs
-/src/main/resources/application.yaml
 
 ### STS ###
 .apt_generated
